@@ -1,6 +1,7 @@
 #pragma once
 #include "switch_input_bridge.hpp"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
