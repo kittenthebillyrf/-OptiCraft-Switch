@@ -2,7 +2,7 @@ name: Build OptiCraft playable Switch prototype
 on:
   workflow_dispatch:
   push:
-    branches: ["main", "prototype/first-playable-world"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
