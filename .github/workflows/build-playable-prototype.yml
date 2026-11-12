@@ -2,9 +2,9 @@ name: Build OptiCraft playable Switch prototype
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125"]
+    branches: ["main", "runtime/input-jni-v124"]
   push:
-    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
