@@ -1,0 +1,44 @@
+name: Build OptiCraft first NRO
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:latest
+    env:
+      DEVKITPRO: /opt/devkitpro
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify devkitPro toolchain
+        run: |
+          test -x "$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
+          test -f "$DEVKITPRO/libnx/switch_rules"
+          test -x "$DEVKITPRO/tools/bin/elf2nro"
+          test -x "$DEVKITPRO/tools/bin/nacptool"
+          "$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++" --version
+
+      - name: Build NRO
+        run: |
+          test -f Makefile
+          export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
+          make clean
+          make all
+          test -s OptiCraft.nro
+
+      - name: Upload NRO
+        uses: actions/upload-artifact@v4
+        with:
+          name: OptiCraft-first-NRO
+          path: |
+            OptiCraft.nro
+            assets/opticraft_icon.jpg
+          if-no-files-found: error
+          retention-days: 14
