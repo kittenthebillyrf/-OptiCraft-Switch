@@ -29,6 +29,14 @@ jobs:
           test -x "$DEVKITPRO/tools/bin/nacptool"
           "$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++" --version
 
+      - name: Ensure libnx library is installed
+        run: |
+          if [ ! -f "$DEVKITPRO/libnx/lib/libnx.a" ]; then
+            dkp-pacman -Sy --noconfirm libnx
+          fi
+          test -f "$DEVKITPRO/libnx/lib/libnx.a"
+          test -f "$DEVKITPRO/libnx/switch.specs"
+
       - name: Extract v91 source archive
         run: |
           test -f OptiCraft_Original_Java125_Switch_Engineering_v91.zip
