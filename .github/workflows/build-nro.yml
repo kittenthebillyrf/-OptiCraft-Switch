@@ -40,7 +40,7 @@ jobs:
         working-directory: source/OptiCraft_Switch_Engineering_v63
         run: |
           export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
-          make clean
+          rm -rf build OptiCraft.nro OptiCraft.elf OptiCraft.nacp
           make all
           test -s OptiCraft.nro
 
