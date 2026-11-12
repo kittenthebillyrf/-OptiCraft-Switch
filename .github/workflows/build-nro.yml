@@ -36,6 +36,9 @@ jobs:
           fi
           test -f "$DEVKITPRO/libnx/lib/libnx.a"
           test -f "$DEVKITPRO/libnx/switch.specs"
+          echo "libnx archive candidates:"
+          find "$DEVKITPRO/libnx" -maxdepth 3 -type f \( -name 'libnx.a' -o -name 'libnx*.a' \) -print
+          test -s "$DEVKITPRO/libnx/lib/libnx.a"
 
       - name: Extract v91 source archive
         run: |
@@ -53,7 +56,7 @@ jobs:
           export LD="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
           # Add the libnx archive directory explicitly for -lnx.
           export LIBNX="$DEVKITPRO/libnx"
-          sed -i '/^include .*switch_rules/i LIBDIRS := $(DEVKITPRO)/libnx/lib' Makefile
+          sed -i '/^include .*switch_rules/i LIBDIRS := $(DEVKITPRO)/libnx' Makefile
           # devkitPro's linker flags (-specs=...) must go through the GCC driver,
           # not the bare host "ld" executable.
           sed -i '/^include .*switch_rules/i CC := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-gcc\nCXX := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++\nLD := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++' Makefile
