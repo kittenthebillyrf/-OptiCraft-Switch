@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: ["main"]
   push:
-    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
