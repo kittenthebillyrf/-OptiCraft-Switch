@@ -1,0 +1,44 @@
+name: Build OptiCraft playable Switch prototype
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123"]
+    paths:
+      - "prototype/**"
+      - "runtime/platform/**"
+      - ".github/workflows/build-playable-prototype.yml"
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:latest
+    env:
+      DEVKITPRO: /opt/devkitpro
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify toolchain
+        run: |
+          test -x "$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
+          test -f "$DEVKITPRO/libnx/switch_rules"
+          test -f "$DEVKITPRO/libnx/switch.specs"
+          test -x "$DEVKITPRO/tools/bin/elf2nro"
+          test -x "$DEVKITPRO/tools/bin/nacptool"
+      - name: Run host platform ABI tests
+        run: sh runtime/platform/tests/run_host_test.sh
+      - name: Build native NRO
+        working-directory: prototype
+        run: |
+          export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
+          make clean || true
+          make V=1
+          test -s OptiCraft.nro
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OptiCraft-World-Prototype-0.1
+          path: prototype/OptiCraft.nro
+          if-no-files-found: error
+          retention-days: 30

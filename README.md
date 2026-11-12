@@ -1,15 +1,21 @@
-# OptiCraft Switch — облачная сборка первого NRO
+# OptiCraft Switch — первый интерактивный прототип
 
-## Что сделать с iPhone
+Проект портирования OptiCraft Java 1.2.5 + OptiFine HD U C7 на Nintendo Switch.
 
-1. Скачай архив v91 из чата ChatGPT.
-2. В этом репозитории нажми **Add file → Upload files**.
-3. Загрузи в корень файл `OptiCraft_Original_Java125_Switch_Engineering_v91.zip` и нажми **Commit changes**.
-4. Открой вкладку **Actions** и выбери **Build OptiCraft first NRO**.
-5. После завершения открой запуск и скачай artifact **OptiCraft-first-NRO**.
+## Первый игровой прототип 0.1
 
-Загрузка ZIP в репозиторий автоматически запустит сборку. Можно также запустить её вручную через **Run workflow**.
+Ветка `prototype/first-playable-world` добавляет нативное libnx-приложение с процедурным изометрическим миром 16×16, перемещением игрока, установкой и удалением блоков, управлением Joy-Con / Pro Controller и программным framebuffer-рендерером.
 
-## Важно
+**Управление:** D-pad / левый стик — движение; A — поставить блок; B — убрать поставленный блок; X — сменить Wood / Brick; Y — новый мир; + — выход.
 
-v91 создаёт диагностический NRO для проверки запуска homebrew-приложения и кнопок. Он пока не содержит JVM и не запускает Minecraft 1.2.5.
+Сборка выполняется workflow **Build OptiCraft playable Switch prototype**. После успешного запуска workflow скачай artifact `OptiCraft-World-Prototype-0.1` из GitHub Actions.
+
+## Важно: что пока не портировано
+
+Это первый интерактивный NRO-прототип, а не запуск оригинального Minecraft Java 1.2.5. В версии 0.1 ещё нет JVM в NRO, Minecraft-классов, оригинальных текстур, сохранения, инвентаря, мобов и мультиплеера. Дальнейшая работа — поэтапно подключить существующий JVM/runtime код и заменить временный renderer и мир компонентами оригинальной игры.
+
+Подробности: [prototype/README_RU.md](prototype/README_RU.md) и [PLAYABLE_PROTOTYPE_v0.1_RU.md](PLAYABLE_PROTOTYPE_v0.1_RU.md).
+
+## Исторические материалы
+
+Архив v91 и старый workflow первого диагностического NRO сохранены как инженерная история. Для нового игрового прототипа используй workflow **Build OptiCraft playable Switch prototype**.
