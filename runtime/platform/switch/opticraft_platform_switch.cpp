@@ -20,7 +20,7 @@ extern "C" void opticraft_platform_poll_events(OptiInputSnapshot *out){
  size_t count=hidGetNpadStatesHandheld(HidNpadIdType_Handheld,&pad,1);
  if (count==0) count=hidGetNpadStatesFullKey(HidNpadIdType_No1,&pad,1);
  if (count==0) return;
- const uint64_t held=0;
+ uint64_t held=0;
  if(pad.buttons&HidNpadButton_A)held|=OPTI_BUTTON_A;
  if(pad.buttons&HidNpadButton_B)held|=OPTI_BUTTON_B;
  if(pad.buttons&HidNpadButton_X)held|=OPTI_BUTTON_X;
