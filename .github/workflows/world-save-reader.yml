@@ -1,0 +1,24 @@
+name: Verify Java world save reader
+on:
+  workflow_dispatch:
+  push:
+    branches: ["runtime/world-save-v126"]
+    paths:
+      - "runtime/world/**"
+      - ".github/workflows/world-save-reader.yml"
+  pull_request:
+    branches: ["runtime/lwjgl-abi-v125"]
+    paths:
+      - "runtime/world/**"
+      - ".github/workflows/world-save-reader.yml"
+permissions:
+  contents: read
+jobs:
+  host-world-reader:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore v126 reader sources
+        run: tar -xzf runtime/world/world_reader_v126.tar.gz -C "$GITHUB_WORKSPACE"
+      - name: Build and test NBT and Anvil world reader
+        run: sh runtime/world/tests/run_world_save_reader_test.sh
