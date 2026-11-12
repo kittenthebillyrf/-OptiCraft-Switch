@@ -2,6 +2,8 @@
 #include "../../platform/include/opticraft_platform.h"
 #include <jni.h>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace {
