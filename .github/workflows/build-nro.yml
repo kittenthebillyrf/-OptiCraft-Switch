@@ -40,8 +40,14 @@ jobs:
         working-directory: source/OptiCraft_Switch_Engineering_v63
         run: |
           export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
+          export CC="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-gcc"
+          export CXX="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
+          export LD="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
+          # devkitPro's linker flags (-specs=...) must go through the GCC driver,
+          # not the bare host "ld" executable.
+          sed -i '/^include .*switch_rules/i CC := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-gcc\nCXX := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++\nLD := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++' Makefile
           rm -rf build OptiCraft.nro OptiCraft.elf OptiCraft.nacp
-          make all
+          make V=1 all
           test -s OptiCraft.nro
 
       - name: Upload NRO
