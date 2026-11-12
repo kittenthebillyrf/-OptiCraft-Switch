@@ -25,7 +25,8 @@ extern "C" int opticraft_platform_read_file(const char *path,void *dst,size_t ca
  const std::string full=std::string("romfs/")+path;
  std::FILE *f=std::fopen(full.c_str(),"rb");if(!f)return -2;
  const size_t n=std::fread(dst,1,cap,f);const bool err=std::ferror(f)!=0;std::fclose(f);
- if(read)*read=n;return err?-3:0;
+ if (read) *read=n;
+ return err ? -3 : 0;
 }
 extern "C" int opticraft_platform_present_rgba8888(const uint32_t *p,int w,int h,int stride){
  (void)p;(void)w;(void)h;(void)stride;return initialized?-10:-1;
