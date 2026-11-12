@@ -4,6 +4,7 @@ public final class SwitchInputBridge {
  public static native int init();
  public static native void shutdown();
  public static native int[] poll(int width,int height);
+ public static native byte[][] pollLwjgl(int width,int height);
  public static native int[] update(long buttons,int lx,int ly,int rx,int ry,int width,int height,int tx,int ty,boolean touch);
  public static native boolean isKeyDown(int key);
  public static native boolean isMouseDown(int button);
