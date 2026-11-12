@@ -47,43 +47,86 @@ jobs:
           unzip -q OptiCraft_Original_Java125_Switch_Engineering_v91.zip -d source
           test -f source/OptiCraft_Switch_Engineering_v63/Makefile
 
-      - name: Build NRO
+      - name: Build NRO with canonical libnx template
         working-directory: source/OptiCraft_Switch_Engineering_v63
         run: |
           export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
-          # The archived Makefile only declared variables and never generated object files.
-          # Replace it with an explicit, minimal devkitPro build for the diagnostic entry point.
+          mkdir -p boot
+          cat > boot/main.c <<'EOF'
+          #include <stdio.h>
+          #include <switch.h>
+
+          int main(int argc, char* argv[]) {
+              (void)argc;
+              (void)argv;
+
+              consoleInit(NULL);
+              padConfigureInput(1, HidNpadStyleSet_NpadStandard);
+              PadState pad;
+              padInitializeDefault(&pad);
+
+              printf("OPTICRAFT - FIRST SWITCH BOOT\\n");
+              printf("Minecraft Java 1.2.5 / OptiFine\\n\\n");
+              printf("NRO entry point: RUNNING\\n");
+              printf("libnx main loop: RUNNING\\n");
+              printf("Java VM: NOT CONNECTED\\n");
+              printf("Minecraft JAR: NOT LOADED\\n\\n");
+              printf("Press A to test input.\\n");
+              printf("Press + to return to hbmenu.\\n");
+
+              unsigned frames = 0;
+              bool input_seen = false;
+              while (appletMainLoop()) {
+                  padUpdate(&pad);
+                  u64 down = padGetButtonsDown(&pad);
+                  if (down & HidNpadButton_Plus) break;
+                  if (down & HidNpadButton_A) input_seen = true;
+
+                  consoleClear();
+                  printf("OPTICRAFT - FIRST SWITCH BOOT\\n\\n");
+                  printf("NRO entry point: RUNNING\\n");
+                  printf("Frames: %u\\n", ++frames);
+                  printf("A button: %s\\n", input_seen ? "DETECTED" : "WAITING");
+                  printf("Java VM: NOT CONNECTED\\n");
+                  printf("Minecraft: NOT STARTED\\n\\n");
+                  printf("Press + to exit.\\n");
+                  consoleUpdate(NULL);
+              }
+
+              consoleExit(NULL);
+              return 0;
+          }
+          EOF
           cat > Makefile <<'EOF'
-          .DEFAULT_GOAL := all
-          TARGET := OptiCraft
-          APP_TITLE := OptiCraft - Java 1.2.5
-          APP_AUTHOR := OptiCraft Switch Port
-          APP_VERSION := 0.0.1
-          APP_ICON := assets/opticraft_icon.jpg
-          ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
-          CFLAGS := -g -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -D__SWITCH__
-          CXXFLAGS := $(CFLAGS) -std=gnu++17 -fno-rtti -fno-exceptions -I$(DEVKITPRO)/libnx/include
-          LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -Wl,--gc-sections -Wl,-z,notext
-          LIBS := -L$(DEVKITPRO)/libnx/lib -lnx
-          NROFLAGS := --icon=$(APP_ICON) --nacp=$(TARGET).nacp
+          .SUFFIXES:
+          ifeq ($(strip $(DEVKITPRO)),)
+          $(error "Please set DEVKITPRO")
+          endif
+          TOPDIR ?= $(CURDIR)
           include $(DEVKITPRO)/libnx/switch_rules
 
-          .PHONY: all clean
-          all: $(TARGET).nacp $(TARGET).nro
-
-          build/main.o: switch_nro/main.cpp
-          	mkdir -p build
-          	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
-
-          $(TARGET).elf: build/main.o
-          	$(CXX) $(LDFLAGS) $^ $(LIBS) -o $@
-
-          clean:
-          	rm -rf build $(TARGET).elf $(TARGET).nro $(TARGET).nacp $(TARGET).lst
+          TARGET := OptiCraft
+          BUILD := build
+          SOURCES := boot
+          DATA :=
+          INCLUDES :=
+          ICON := assets/opticraft_icon.jpg
+          APP_TITLE := OptiCraft - Java 1.2.5
+          APP_AUTHOR := OptiCraft Switch Port
+          APP_VERSION := 0.0.2
+          ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+          CFLAGS := -g -Wall -O2 -ffunction-sections -fdata-sections $(ARCH) -D__SWITCH__
+          CXXFLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
+          ASFLAGS := -g $(ARCH)
+          LDFLAGS = -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+          LIBS := -lnx
+          LIBDIRS := $(PORTLIBS) $(LIBNX)
           EOF
           make clean
-          make V=1 all
+          make V=1
           test -s OptiCraft.nro
+          file OptiCraft.nro
+          "$DEVKITPRO/tools/bin/elf2nro" --help >/dev/null
 
       - name: Upload NRO
         uses: actions/upload-artifact@v4
