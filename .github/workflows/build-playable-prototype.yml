@@ -5,6 +5,7 @@ on:
     branches: ["main", "prototype/first-playable-world"]
     paths:
       - "prototype/**"
+      - "runtime/platform/**"
       - ".github/workflows/build-playable-prototype.yml"
 permissions:
   contents: read
@@ -24,6 +25,8 @@ jobs:
           test -f "$DEVKITPRO/libnx/switch.specs"
           test -x "$DEVKITPRO/tools/bin/elf2nro"
           test -x "$DEVKITPRO/tools/bin/nacptool"
+      - name: Run host platform ABI tests
+        run: sh runtime/platform/tests/run_host_test.sh
       - name: Build native NRO
         working-directory: prototype
         run: |
