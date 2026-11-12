@@ -43,9 +43,9 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	OptiCraft
 BUILD		:=	build
-SOURCES		:=	switch_nro
+SOURCES		:=	switch_nro ../runtime/platform/switch
 DATA		:=
-INCLUDES	:=	
+INCLUDES	:=	../runtime/platform/include
 #ROMFS	:=	romfs
 
 #---------------------------------------------------------------------------------
