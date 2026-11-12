@@ -43,9 +43,9 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	OptiCraft
 BUILD		:=	build
-SOURCES		:=	switch_nro ../runtime/platform/switch ../runtime/input/src
+SOURCES		:=	switch_nro ../runtime/platform/switch ../runtime/input/src ../runtime/world/src
 DATA		:=
-INCLUDES	:=	../runtime/platform/include ../runtime/input/include
+INCLUDES	:=	../runtime/platform/include ../runtime/input/include ../runtime/world/include
 #ROMFS	:=	romfs
 
 #---------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lnx
+LIBS	:= -lnx -lz
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
