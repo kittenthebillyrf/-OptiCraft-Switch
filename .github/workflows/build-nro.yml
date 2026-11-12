@@ -97,7 +97,6 @@ jobs:
           rm -rf build OptiCraft.nro OptiCraft.elf OptiCraft.nacp
           make V=1
           test -s OptiCraft.nro
-          file OptiCraft.nro
 
       - name: Upload NRO
         uses: actions/upload-artifact@v4
