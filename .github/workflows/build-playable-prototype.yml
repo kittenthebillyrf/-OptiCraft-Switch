@@ -2,13 +2,14 @@ name: Build OptiCraft playable Switch prototype
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main", "runtime/input-jni-v124"]
+    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125"]
   push:
-    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
       - "runtime/input/**"
+      - "runtime/world/**"
       - ".github/workflows/build-playable-prototype.yml"
 permissions:
   contents: read
@@ -21,6 +22,8 @@ jobs:
       DEVKITPRO: /opt/devkitpro
     steps:
       - uses: actions/checkout@v4
+      - name: Restore Java world reader sources
+        run: tar -xzf runtime/world/world_reader_v126.tar.gz -C "$GITHUB_WORKSPACE"
       - name: Verify toolchain
         run: |
           test -x "$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
