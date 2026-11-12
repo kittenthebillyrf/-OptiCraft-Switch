@@ -1,5 +1,7 @@
 #include <switch.h>
 #include <algorithm>
+#include <array>
+#include "opticraft_platform.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -9,8 +11,8 @@ constexpr int SW=1280, SH=720, MAP_W=16, MAP_H=16, TILE_W=48, TILE_H=24;
 enum Tile:uint8_t { Grass,Water,Sand,Stone,Wood,Brick };
 struct Cell { Tile type; uint8_t height; bool player_placed; };
 struct Point { int x,y; };
-Framebuffer fb{}; bool fb_ready=false;
-HidNpadFullKeyState pad{};
+std::array<uint32_t,SW*SH> frame_pixels{};
+OptiInputSnapshot input{};
 Cell world[MAP_H][MAP_W]{};
 int px=8,py=8,fx=1,fy=0;
 Tile selected=Wood;
@@ -103,41 +105,32 @@ void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool
         }
     }
 }
-bool init_platform(){
-    Result rc=hidInitialize();if(R_FAILED(rc))return false;hidInitializeNpad();
-    rc=framebufferCreate(&fb,nwindowGetDefault(),SW,SH,PIXEL_FORMAT_RGBA_8888,2);
-    if(R_FAILED(rc)){hidExit();return false;}
-    rc=framebufferMakeLinear(&fb);if(R_FAILED(rc)){framebufferClose(&fb);hidExit();return false;}
-    fb_ready=true;return true;
-}
-void shutdown_platform(){if(fb_ready){framebufferClose(&fb);hidExit();fb_ready=false;}}
-bool poll_pad(){
-    size_t count=hidGetNpadStatesHandheld(HidNpadIdType_Handheld,&pad,1);
-    if(count==0)count=hidGetNpadStatesFullKey(HidNpadIdType_No1,&pad,1);
-    return count!=0;
-}
+bool init_platform(){return opticraft_platform_init()==0;}
+void shutdown_platform(){opticraft_platform_shutdown();}
+bool poll_pad(){opticraft_platform_poll_events(&input);return true;}
 void move_player(int dx,int dy){
     if(dx==0&&dy==0)return;fx=dx;fy=dy;
     int nx=std::clamp(px+dx,0,MAP_W-1),ny=std::clamp(py+dy,0,MAP_H-1);
     if(world[ny][nx].type!=Water){px=nx;py=ny;}
 }
 void update_game(){
-    int dx=0,dy=0;u64 buttons=pad.buttons;
+    int dx=0,dy=0;const uint64_t buttons=input.buttons;
     if((frame_no%8)==0){
-        if(buttons&HidNpadButton_Up)dy=-1;else if(buttons&HidNpadButton_Down)dy=1;
-        else if(buttons&HidNpadButton_Left)dx=-1;else if(buttons&HidNpadButton_Right)dx=1;
-        else if(pad.analog_stick_l.x>10000)dx=1;else if(pad.analog_stick_l.x< -10000)dx=-1;
-        else if(pad.analog_stick_l.y>10000)dy=-1;else if(pad.analog_stick_l.y< -10000)dy=1;
+        if(buttons&OPTI_BUTTON_DPAD_UP)dy=-1;else if(buttons&OPTI_BUTTON_DPAD_DOWN)dy=1;
+        else if(buttons&OPTI_BUTTON_DPAD_LEFT)dx=-1;else if(buttons&OPTI_BUTTON_DPAD_RIGHT)dx=1;
+        else if(input.left_x>10000)dx=1;else if(input.left_x< -10000)dx=-1;
+        else if(input.left_y>10000)dy=-1;else if(input.left_y< -10000)dy=1;
         move_player(dx,dy);
         int tx=std::clamp(px+fx,0,MAP_W-1),ty=std::clamp(py+fy,0,MAP_H-1);
-        if(buttons&HidNpadButton_A)world[ty][tx]={selected,2,true};
-        if((buttons&HidNpadButton_B)&&world[ty][tx].player_placed)world[ty][tx]={Grass,1,false};
+        if(buttons&OPTI_BUTTON_A)world[ty][tx]={selected,2,true};
+        if((buttons&OPTI_BUTTON_B)&&world[ty][tx].player_placed)world[ty][tx]={Grass,1,false};
     }
-    if((buttons&HidNpadButton_X)&&(frame_no%12)==0)selected=static_cast<Tile>((static_cast<int>(selected-Wood)+1)%2+Wood);
-    if((buttons&HidNpadButton_Y)&&(frame_no%12)==0){px=8;py=8;generate_world();}
+    if((buttons&OPTI_BUTTON_X)&&(frame_no%12)==0)selected=static_cast<Tile>((static_cast<int>(selected-Wood)+1)%2+Wood);
+    if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=8;py=8;generate_world();}
 }
 void render(){
-    uint32_t stride=0;auto* base=static_cast<uint8_t*>(framebufferBegin(&fb,&stride));if(!base)return;
+    const uint32_t stride=SW*static_cast<uint32_t>(sizeof(uint32_t));
+    auto* base=reinterpret_cast<uint8_t*>(frame_pixels.data());
     for(int y=0;y<SH;++y){uint32_t* row=row_at(base,stride,y);for(int x=0;x<SW;++x)row[x]=color(105,174,220);}
     rect(base,stride,0,0,SW,95,color(91,158,211));
     for(int sum=0;sum<=2*(MAP_W-1);++sum)for(int x=0;x<MAP_W;++x){
@@ -158,7 +151,7 @@ void render(){
     draw_text(base,stride,42,SH-94,line,color(255,255,255),2);
     draw_text(base,stride,42,SH-62,"DPAD MOVE  A PLACE  B BREAK  X BLOCK  Y NEW WORLD",color(224,232,242),2);
     draw_text(base,stride,SW-180,34,"PLUS EXIT",color(255,255,255),2);
-    framebufferEnd(&fb);
+    (void)opticraft_platform_present_rgba8888(frame_pixels.data(),SW,SH,SW);
 }
 } // namespace
 
@@ -166,7 +159,7 @@ int main(int argc,char** argv){
     (void)argc;(void)argv;if(!init_platform())return 1;generate_world();
     while(appletMainLoop()){
         if(!poll_pad()){++frame_no;continue;}
-        if(pad.buttons&HidNpadButton_Plus)break;
+        if(input.should_exit)break;
         update_game();render();++frame_no;
     }
     shutdown_platform();return 0;
