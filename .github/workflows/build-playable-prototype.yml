@@ -2,7 +2,7 @@ name: Build OptiCraft playable Switch prototype
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125"]
   push:
     branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124"]
     paths:
@@ -66,6 +66,7 @@ jobs:
             "$ROOT/runtime/platform/host/opticraft_platform_host.cpp" \
             "$ROOT/runtime/input/src/input_adapter.cpp" \
             "$ROOT/runtime/input/src/switch_input_bridge.cpp" \
+            "$ROOT/runtime/input/src/lwjgl_event_buffers.cpp" \
             "$ROOT/runtime/input/src/opticraft_input_api.cpp" \
             "$ROOT/runtime/input/src/switch_input_bridge_jni.cpp" \
             -o "$ROOT/build/jni-smoke/libopticraftinput.so"
