@@ -47,7 +47,7 @@ jobs:
           unzip -q OptiCraft_Original_Java125_Switch_Engineering_v91.zip -d source
           test -f source/OptiCraft_Switch_Engineering_v63/Makefile
 
-      - name: Build NRO with canonical libnx template
+      - name: Build NRO from upstream devkitPro application template
         working-directory: source/OptiCraft_Switch_Engineering_v63
         run: |
           export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
@@ -59,21 +59,10 @@ jobs:
           int main(int argc, char* argv[]) {
               (void)argc;
               (void)argv;
-
               consoleInit(NULL);
               padConfigureInput(1, HidNpadStyleSet_NpadStandard);
               PadState pad;
               padInitializeDefault(&pad);
-
-              printf("OPTICRAFT - FIRST SWITCH BOOT\\n");
-              printf("Minecraft Java 1.2.5 / OptiFine\\n\\n");
-              printf("NRO entry point: RUNNING\\n");
-              printf("libnx main loop: RUNNING\\n");
-              printf("Java VM: NOT CONNECTED\\n");
-              printf("Minecraft JAR: NOT LOADED\\n\\n");
-              printf("Press A to test input.\\n");
-              printf("Press + to return to hbmenu.\\n");
-
               unsigned frames = 0;
               bool input_seen = false;
               while (appletMainLoop()) {
@@ -81,52 +70,34 @@ jobs:
                   u64 down = padGetButtonsDown(&pad);
                   if (down & HidNpadButton_Plus) break;
                   if (down & HidNpadButton_A) input_seen = true;
-
                   consoleClear();
-                  printf("OPTICRAFT - FIRST SWITCH BOOT\\n\\n");
-                  printf("NRO entry point: RUNNING\\n");
+                  printf("OPTICRAFT - SWITCH BOOT TEST\\n\\n");
+                  printf("NRO entry: RUNNING\\n");
                   printf("Frames: %u\\n", ++frames);
-                  printf("A button: %s\\n", input_seen ? "DETECTED" : "WAITING");
+                  printf("A input: %s\\n", input_seen ? "DETECTED" : "WAITING");
                   printf("Java VM: NOT CONNECTED\\n");
                   printf("Minecraft: NOT STARTED\\n\\n");
                   printf("Press + to exit.\\n");
                   consoleUpdate(NULL);
               }
-
               consoleExit(NULL);
               return 0;
           }
           EOF
-          cat > Makefile <<'EOF'
-          .SUFFIXES:
-          ifeq ($(strip $(DEVKITPRO)),)
-          $(error "Please set DEVKITPRO")
-          endif
-          TOPDIR ?= $(CURDIR)
-          include $(DEVKITPRO)/libnx/switch_rules
-
-          TARGET := OptiCraft
-          BUILD := build
-          SOURCES := boot
-          DATA :=
-          INCLUDES :=
-          ICON := assets/opticraft_icon.jpg
-          APP_TITLE := OptiCraft - Java 1.2.5
-          APP_AUTHOR := OptiCraft Switch Port
-          APP_VERSION := 0.0.2
-          ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
-          CFLAGS := -g -Wall -O2 -ffunction-sections -fdata-sections $(ARCH) -D__SWITCH__
-          CXXFLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
-          ASFLAGS := -g $(ARCH)
-          LDFLAGS = -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
-          LIBS := -lnx
-          LIBDIRS := $(PORTLIBS) $(LIBNX)
-          EOF
-          make clean
+          curl -fsSL https://raw.githubusercontent.com/switchbrew/switch-examples/master/templates/application/Makefile -o Makefile
+          sed -i 's|^TARGET[[:space:]]*:.*|TARGET := OptiCraft|' Makefile
+          sed -i 's|^SOURCES[[:space:]]*:.*|SOURCES := boot|' Makefile
+          sed -i 's|^DATA[[:space:]]*:.*|DATA :=|' Makefile
+          sed -i 's|^INCLUDES[[:space:]]*:.*|INCLUDES :=|' Makefile
+          sed -i 's|^ICON[[:space:]]*:.*|ICON := assets/opticraft_icon.jpg|' Makefile
+          sed -i '/^APP_TITLE[[:space:]]*[:?+]*=/d' Makefile
+          sed -i '/^APP_AUTHOR[[:space:]]*[:?+]*=/d' Makefile
+          sed -i '/^APP_VERSION[[:space:]]*[:?+]*=/d' Makefile
+          sed -i '/^TARGET := OptiCraft/a APP_TITLE := OptiCraft - Java 1.2.5\nAPP_AUTHOR := OptiCraft Switch Port\nAPP_VERSION := 0.0.3' Makefile
+          rm -rf build OptiCraft.nro OptiCraft.elf OptiCraft.nacp
           make V=1
           test -s OptiCraft.nro
           file OptiCraft.nro
-          "$DEVKITPRO/tools/bin/elf2nro" --help >/dev/null
 
       - name: Upload NRO
         uses: actions/upload-artifact@v4
