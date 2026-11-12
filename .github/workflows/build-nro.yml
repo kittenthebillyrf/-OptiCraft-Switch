@@ -62,7 +62,7 @@ jobs:
           APP_ICON := assets/opticraft_icon.jpg
           ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
           CFLAGS := -g -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -D__SWITCH__
-          CXXFLAGS := $(CFLAGS) -std=gnu++17
+          CXXFLAGS := $(CFLAGS) -std=gnu++17 -I$(DEVKITPRO)/libnx/include
           LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -Wl,--gc-sections -pie
           LIBS := -L$(DEVKITPRO)/libnx/lib -lnx
           NROFLAGS := --icon=$(APP_ICON) --nacp=$(TARGET).nacp
