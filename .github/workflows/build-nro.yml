@@ -51,17 +51,37 @@ jobs:
         working-directory: source/OptiCraft_Switch_Engineering_v63
         run: |
           export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
-          export CC="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-gcc"
-          export CXX="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
-          export LD="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
-          # Add the libnx archive directory explicitly for -lnx.
-          export LIBNX="$DEVKITPRO/libnx"
-          # Pass the archive search path directly with -lnx; do not rely on LIBDIRS defaults.
-          sed -i 's|^LIBS[[:space:]]*:=.*|LIBS := -L$(DEVKITPRO)/libnx/lib -lnx|' Makefile
-          # devkitPro's linker flags (-specs=...) must go through the GCC driver,
-          # not the bare host "ld" executable.
-          sed -i '/^include .*switch_rules/i CC := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-gcc\nCXX := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++\nLD := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++' Makefile
-          rm -rf build OptiCraft.nro OptiCraft.elf OptiCraft.nacp
+          # The archived Makefile only declared variables and never generated object files.
+          # Replace it with an explicit, minimal devkitPro build for the diagnostic entry point.
+          cat > Makefile <<'EOF'
+          .DEFAULT_GOAL := all
+          TARGET := OptiCraft
+          APP_TITLE := OptiCraft - Java 1.2.5
+          APP_AUTHOR := OptiCraft Switch Port
+          APP_VERSION := 0.0.1
+          APP_ICON := assets/opticraft_icon.jpg
+          ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+          CFLAGS := -g -Wall -Wextra -O2 -ffunction-sections -fdata-sections $(ARCH) -D__SWITCH__
+          CXXFLAGS := $(CFLAGS) -std=gnu++17
+          LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -Wl,--gc-sections -pie
+          LIBS := -L$(DEVKITPRO)/libnx/lib -lnx
+          NROFLAGS := --icon=$(APP_ICON) --nacp=$(TARGET).nacp
+          include $(DEVKITPRO)/libnx/switch_rules
+
+          .PHONY: all clean
+          all: $(TARGET).nacp $(TARGET).nro
+
+          build/main.o: switch_nro/main.cpp
+          	mkdir -p build
+          	$(CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+
+          $(TARGET).elf: build/main.o
+          	$(CXX) $(LDFLAGS) $^ $(LIBS) -o $@
+
+          clean:
+          	rm -rf build $(TARGET).elf $(TARGET).nro $(TARGET).nacp $(TARGET).lst
+          EOF
+          make clean
           make V=1 all
           test -s OptiCraft.nro
 
