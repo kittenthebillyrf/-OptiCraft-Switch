@@ -51,6 +51,9 @@ jobs:
           export CC="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-gcc"
           export CXX="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
           export LD="$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
+          # Add the libnx archive directory explicitly for -lnx.
+          export LIBNX="$DEVKITPRO/libnx"
+          sed -i '/^include .*switch_rules/i LIBDIRS := $(DEVKITPRO)/libnx/lib' Makefile
           # devkitPro's linker flags (-specs=...) must go through the GCC driver,
           # not the bare host "ld" executable.
           sed -i '/^include .*switch_rules/i CC := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-gcc\nCXX := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++\nLD := $(DEVKITPRO)/devkitA64/bin/aarch64-none-elf-g++' Makefile
