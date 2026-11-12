@@ -20,9 +20,20 @@ extern "C" void opticraft_platform_poll_events(OptiInputSnapshot *out){
  size_t count=hidGetNpadStatesHandheld(HidNpadIdType_Handheld,&pad,1);
  if (count==0) count=hidGetNpadStatesFullKey(HidNpadIdType_No1,&pad,1);
  if (count==0) return;
- const uint64_t held=static_cast<uint64_t>(pad.buttons);
+ uint64_t held=0;
+ if(pad.buttons&HidNpadButton_A)held|=OPTI_BUTTON_A;
+ if(pad.buttons&HidNpadButton_B)held|=OPTI_BUTTON_B;
+ if(pad.buttons&HidNpadButton_X)held|=OPTI_BUTTON_X;
+ if(pad.buttons&HidNpadButton_Y)held|=OPTI_BUTTON_Y;
+ if(pad.buttons&HidNpadButton_L)held|=OPTI_BUTTON_L;
+ if(pad.buttons&HidNpadButton_R)held|=OPTI_BUTTON_R;
+ if(pad.buttons&HidNpadButton_Left)held|=OPTI_BUTTON_DPAD_LEFT;
+ if(pad.buttons&HidNpadButton_Up)held|=OPTI_BUTTON_DPAD_UP;
+ if(pad.buttons&HidNpadButton_Right)held|=OPTI_BUTTON_DPAD_RIGHT;
+ if(pad.buttons&HidNpadButton_Down)held|=OPTI_BUTTON_DPAD_DOWN;
+ if(pad.buttons&HidNpadButton_Plus)held|=OPTI_BUTTON_PLUS;
  out->buttons=held;out->pressed=held&~previous_buttons;out->released=previous_buttons&~held;previous_buttons=held;
- out->should_exit=(held&HidNpadButton_Plus)?1:0;
+ out->should_exit=(held&OPTI_BUTTON_PLUS)?1:0;
  out->left_x=pad.analog_stick_l.x; out->left_y=pad.analog_stick_l.y;
  out->right_x=pad.analog_stick_r.x; out->right_y=pad.analog_stick_r.y;
 }

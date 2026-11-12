@@ -6,6 +6,12 @@
 extern "C" {
 #endif
 #define OPTI_PLATFORM_ABI_VERSION 1u
+enum OptiPlatformButton {
+ OPTI_BUTTON_A=1ull<<0, OPTI_BUTTON_B=1ull<<1, OPTI_BUTTON_X=1ull<<2, OPTI_BUTTON_Y=1ull<<3,
+ OPTI_BUTTON_L=1ull<<6, OPTI_BUTTON_R=1ull<<7, OPTI_BUTTON_DPAD_LEFT=1ull<<12,
+ OPTI_BUTTON_DPAD_UP=1ull<<13, OPTI_BUTTON_DPAD_RIGHT=1ull<<14, OPTI_BUTTON_DPAD_DOWN=1ull<<15,
+ OPTI_BUTTON_PLUS=1ull<<20
+};
 typedef struct OptiInputSnapshot {
  uint64_t buttons, pressed, released;
  int32_t left_x, left_y, right_x, right_y, touch_x, touch_y;

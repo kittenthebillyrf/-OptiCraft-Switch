@@ -43,9 +43,9 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	OptiCraft
 BUILD		:=	build
-SOURCES		:=	switch_nro ../runtime/platform/switch
+SOURCES		:=	switch_nro ../runtime/platform/switch ../runtime/input/src
 DATA		:=
-INCLUDES	:=	../runtime/platform/include
+INCLUDES	:=	../runtime/platform/include ../runtime/input/include
 #ROMFS	:=	romfs
 
 #---------------------------------------------------------------------------------
@@ -89,6 +89,8 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+# JNI_OnLoad is built only by the JVM-host smoke target; the NRO has no jni.h yet.
+CPPFILES	:=	$(filter-out switch_input_bridge_jni.cpp,$(CPPFILES))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
