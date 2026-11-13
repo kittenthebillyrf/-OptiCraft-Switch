@@ -81,7 +81,6 @@ bool parse_section(Cursor& c,OpticraftAnvilChunkPreview& out){
      out.block_id[column]=id;
      out.metadata[column]=meta;
     }
-    break;
    }
   }
  }
