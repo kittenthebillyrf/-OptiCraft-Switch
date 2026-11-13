@@ -19,6 +19,7 @@ std::array<uint32_t,SW*SH> frame_pixels{};
 OptiInputSnapshot input{};
 Cell world[MAP_H][MAP_W]{};
 int px=24,py=24,fx=1,fy=0;
+int32_t player_world_x=0,player_world_z=0;
 Tile selected=Wood;
 unsigned frame_no=0;
 constexpr size_t MAX_WORLD_SAVES=8;
@@ -122,10 +123,19 @@ void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool
 bool init_platform(){return opticraft_platform_init()==0;}
 void shutdown_platform(){opticraft_platform_shutdown();}
 bool poll_pad(){opticraft_platform_poll_events(&input);return true;}
+void load_selected_world_chunk();
 void move_player(int dx,int dy){
-    if(dx==0&&dy==0)return;fx=dx;fy=dy;
-    int nx=std::clamp(px+dx,0,MAP_W-1),ny=std::clamp(py+dy,0,MAP_H-1);
-    if(world[ny][nx].type!=Water){px=nx;py=ny;}
+    if(dx==0&&dy==0)return;
+    fx=dx;fy=dy;
+    const int nx=std::clamp(px+dx,0,MAP_W-1);
+    const int ny=std::clamp(py+dy,0,MAP_H-1);
+    if(world[ny][nx].type==Water)return;
+    px=nx;py=ny;
+    if(world_chunk_loaded){
+        player_world_x+=dx;
+        player_world_z+=dy;
+        if(px<16||px>=32||py<16||py>=32)load_selected_world_chunk();
+    }
 }
 void load_selected_world_preview();
 void load_selected_world_chunk();
@@ -151,7 +161,7 @@ void update_game(){
         if((buttons&OPTI_BUTTON_B)&&world[ty][tx].player_placed)world[ty][tx]={Grass,1,false};
     }
     if((buttons&OPTI_BUTTON_X)&&(frame_no%12)==0)selected=static_cast<Tile>((static_cast<int>(selected-Wood)+1)%2+Wood);
-    if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=24;py=24;world_chunk_loaded=false;world_chunks_loaded=0;generate_world();}
+    if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=24;py=24;player_world_x=0;player_world_z=0;world_chunk_loaded=false;world_chunks_loaded=0;generate_world();}
 }
 void load_selected_world_preview(){
     world_preview={};world_preview_loaded=false;world_chunk_loaded=false;world_chunks_loaded=0;
@@ -163,13 +173,15 @@ void load_selected_world_preview(){
                         world_saves[selected_world_index].folder);
     if(n<0||static_cast<size_t>(n)>=sizeof(directory)){generate_world();return;}
     world_preview_loaded=opticraft_world_save_read_preview(directory,&world_preview)==0;
+    player_world_x=world_preview_loaded&&world_preview.has_spawn?world_preview.spawn_x:0;
+    player_world_z=world_preview_loaded&&world_preview.has_spawn?world_preview.spawn_z:0;
     load_selected_world_chunk();
 }
 void load_selected_world_chunk(){
     world_chunk={};world_chunk_loaded=false;world_chunks_loaded=0;
     if(!world_preview_loaded){generate_world();return;}
-    const int32_t spawn_x=world_preview.has_spawn?world_preview.spawn_x:0;
-    const int32_t spawn_z=world_preview.has_spawn?world_preview.spawn_z:0;
+    const int32_t center_x=player_world_x;
+    const int32_t center_z=player_world_z;
     char directory[512];
     int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
                         world_saves[selected_world_index].folder);
@@ -185,13 +197,14 @@ void load_selected_world_chunk(){
             default:return Grass;
         }
     };
+    bool center_chunk_loaded=false;
     for(int dz=-1;dz<=1;++dz)for(int dx=-1;dx<=1;++dx){
         OpticraftAnvilChunkPreview chunk{};
-        const int32_t sample_x=spawn_x+dx*16;
-        const int32_t sample_z=spawn_z+dz*16;
+        const int32_t sample_x=center_x+dx*16;
+        const int32_t sample_z=center_z+dz*16;
         if(opticraft_world_read_spawn_chunk(directory,sample_x,sample_z,&chunk)!=0)continue;
         ++world_chunks_loaded;
-        if(dx==0&&dz==0)world_chunk=chunk;
+        if(dx==0&&dz==0){world_chunk=chunk;center_chunk_loaded=true;}
         const int base_x=(dx+1)*16;
         const int base_z=(dz+1)*16;
         for(int z=0;z<16;++z)for(int x=0;x<16;++x){
@@ -202,10 +215,10 @@ void load_selected_world_chunk(){
             };
         }
     }
-    if(world_chunks_loaded==0){generate_world();return;}
-    px=16+(world_preview.has_spawn?((spawn_x%16)+16)%16:8);
-    py=16+(world_preview.has_spawn?((spawn_z%16)+16)%16:8);
-    world_chunk_loaded=world_chunks_loaded>0;
+    if(!center_chunk_loaded){world_chunks_loaded=0;generate_world();return;}
+    px=16+((center_x%16)+16)%16;
+    py=16+((center_z%16)+16)%16;
+    world_chunk_loaded=true;
 }
 void draw_world_catalog(uint8_t* base,uint32_t stride){
     const int x=SW-360,y=18,w=338,h=210;
