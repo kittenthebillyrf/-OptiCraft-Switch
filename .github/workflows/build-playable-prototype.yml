@@ -33,8 +33,6 @@ jobs:
           test -x "$DEVKITPRO/tools/bin/nacptool"
       - name: Run Java save catalog host tests
         run: sh runtime/world/tests/run_world_catalog_test.sh
-      - name: Run selected world preview host tests
-        run: sh runtime/world/tests/run_world_preview_test.sh
       - name: Run host platform ABI tests
         run: sh runtime/platform/tests/run_host_test.sh
       - name: Run platform input bridge tests
@@ -57,6 +55,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install zlib development headers for host parser test
+        run: sudo apt-get update -qq && sudo apt-get install -y zlib1g-dev
+      - name: Run selected world preview host tests
+        run: sh runtime/world/tests/run_world_preview_test.sh
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
