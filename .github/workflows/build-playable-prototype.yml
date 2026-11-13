@@ -33,7 +33,9 @@ jobs:
           test -x "$DEVKITPRO/tools/bin/nacptool"
       - name: Run Java save catalog host tests
         run: sh runtime/world/tests/run_world_catalog_test.sh
-      - name: Run selected world preview host tests\n        run: sh runtime/world/tests/run_world_preview_test.sh\n      - name: Run host platform ABI tests
+      - name: Run selected world preview host tests
+        run: sh runtime/world/tests/run_world_preview_test.sh
+      - name: Run host platform ABI tests
         run: sh runtime/platform/tests/run_host_test.sh
       - name: Run platform input bridge tests
         run: sh runtime/input/tests/run_host_test.sh
