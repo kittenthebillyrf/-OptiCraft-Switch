@@ -214,6 +214,10 @@ void draw_textured_side(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& 
         }
     }
 }
+int terrain_drop(uint8_t height){
+    if(height<=3)return static_cast<int>(height)*5;
+    return std::clamp((static_cast<int>(height)-60)*2,0,64);
+}
 void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool selected_tile){
     int hw=TILE_W/2,hh=TILE_H/2,drop=terrain_drop(cell.height);
     uint32_t top=color(74,158,66),left=color(43,105,45),right=color(56,126,53);
