@@ -29,7 +29,7 @@ bool skip_payload(Cursor& c, uint8_t type, unsigned depth) {
         case 5:return take(c,4,p);
         case 6:return take(c,8,p);
         case 7:if(!i32(c,i)||i<0||i>16*1024*1024)return false;return take(c,static_cast<size_t>(i),p);
-        case 8:return string_value(c,*new std::string());
+        case 8:{std::string value;return string_value(c,value);}
         case 9:{
             uint8_t child;int32_t count;if(!u8(c,child)||!i32(c,count)||count<0||count>1000000)return false;
             if(child==0)return count==0;
@@ -57,7 +57,7 @@ bool parse_data_compound(Cursor& c, OpticraftWorldPreview& out) {
         } else if((name=="SpawnX"||name=="SpawnY"||name=="SpawnZ")&&type==3){
             int32_t value;if(!i32(c,value))return false;
             if(name=="SpawnX")out.spawn_x=value;else if(name=="SpawnY")out.spawn_y=value;else out.spawn_z=value;
-            if(out.spawn_x||out.spawn_y||out.spawn_z)out.has_spawn=1;
+            out.has_spawn=1;
         } else if(!skip_payload(c,type,0))return false;
     }
 }
