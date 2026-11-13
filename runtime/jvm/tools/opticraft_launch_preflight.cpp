@@ -88,7 +88,7 @@ bool inspect_main(const std::vector<uint8_t>& c,size_t& code_size,std::string& e
     if(!r.u4(magic)||!r.u2(minor)||!r.u2(major)||!r.u2(cp_count)||major!=49||cp_count<1) {
         error="expected Java 5 classfile (major 49)"; return false;
     }
-    std::vector<std::string> utf(cp_count); std::vector<uint8_t> tags(cp_count);
+    (void)minor;\n    std::vector<std::string> utf(cp_count); std::vector<uint8_t> tags(cp_count);
     for(uint32_t i=1;i<cp_count;i++) {
         uint8_t tag; if(!r.u1(tag)) { error="truncated constant pool"; return false; } tags[i]=tag;
         uint16_t a,b; uint32_t x;
@@ -107,17 +107,17 @@ bool inspect_main(const std::vector<uint8_t>& c,size_t& code_size,std::string& e
     if(!r.u2(access)||!r.u2(this_class)||!r.u2(super_class)||!r.u2(interfaces)||!r.take(size_t(interfaces)*2)||!r.u2(fields)) {
         error="truncated class declaration"; return false;
     }
-    for(uint32_t i=0;i<fields;i++) { uint16_t a,n,d,ac; if(!r.u2(a)||!r.u2(n)||!r.u2(d)||!r.u2(ac)||!skip_attributes(r,ac)) { error="bad fields"; return false; } }
+    (void)access; (void)this_class; (void)super_class;\n    for(uint32_t i=0;i<fields;i++) { uint16_t a,n,d,ac; if(!r.u2(a)||!r.u2(n)||!r.u2(d)||!r.u2(ac)||!skip_attributes(r,ac)) { error="bad fields"; return false; } }
     if(!r.u2(methods)) { error="missing methods"; return false; }
     bool found=false;
     for(uint32_t i=0;i<methods;i++) {
         uint16_t flags,name,desc,attrs; if(!r.u2(flags)||!r.u2(name)||!r.u2(desc)||!r.u2(attrs)) { error="truncated method"; return false; }
-        for(uint32_t j=0;j<attrs;j++) {
+        (void)flags;\n        for(uint32_t j=0;j<attrs;j++) {
             uint16_t an; uint32_t len; if(!r.u2(an)||!r.u4(len)||!range(r.p,len,c.size())) { error="bad method attribute"; return false; }
             const std::string attr=(an<utf.size()?utf[an]:std::string());
             if(name<utf.size()&&desc<utf.size()&&utf[name]=="main"&&utf[desc]=="([Ljava/lang/String;)V"&&attr=="Code") {
                 Reader cr{c}; cr.p=r.p; uint16_t ms,ml,ex,ac; uint32_t clen;
-                if(!cr.u2(ms)||!cr.u2(ml)||!cr.u4(clen)||clen>65535||!cr.take(clen)) { error="invalid main Code attribute"; return false; }
+                if(!cr.u2(ms)||!cr.u2(ml)||!cr.u4(clen)||clen>65535||!cr.take(clen)) { error="invalid main Code attribute"; return false; }\n                (void)ms; (void)ml;
                 code_size=clen; found=true;
             }
             if(!r.take(len)) return false;
