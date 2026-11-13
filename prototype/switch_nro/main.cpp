@@ -200,8 +200,12 @@ void draw_textured_side(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& 
         }
     }
 }
+int terrain_drop(uint8_t height){
+    if(height<=3)return static_cast<int>(height)*5;
+    return std::clamp((static_cast<int>(height)-60)*2,0,64);
+}
 void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool selected_tile){
-    int hw=TILE_W/2,hh=TILE_H/2,drop=static_cast<int>(cell.height)*5;
+    int hw=TILE_W/2,hh=TILE_H/2,drop=terrain_drop(cell.height);
     uint32_t top=color(74,158,66),left=color(43,105,45),right=color(56,126,53);
     switch(cell.type){
         case Water:top=color(45,125,205);left=color(25,75,145);right=color(32,95,175);break;
@@ -340,9 +344,8 @@ void load_selected_world_chunk(){
         const int base_z=(dz+1)*16;
         for(int z=0;z<16;++z)for(int x=0;x<16;++x){
             const int index=z*16+x;
-            const int elevation=std::clamp((static_cast<int>(chunk.height[index])-60)/4,0,3);
             world[base_z+z][base_x+x]={
-                map_block(chunk.block_id[index]),static_cast<uint8_t>(elevation),false,chunk.metadata[index],chunk.block_id[index]
+                map_block(chunk.block_id[index]),chunk.height[index],false,chunk.metadata[index],chunk.block_id[index]
             };
         }
     }
@@ -407,7 +410,7 @@ void render(){
         bool target=x==std::clamp(px+fx,0,MAP_W-1)&&y==std::clamp(py+fy,0,MAP_H-1);
         draw_tile(base,stride,sx,sy,world[y][x],target);
     }
-    int psx=SW/2,psy=SH/2-30;Point marker[4]={{psx,psy-13},{psx+10,psy},{psx,psy+13},{psx-10,psy}};
+    int psx=SW/2,psy=SH/2-30-terrain_drop(world[py][px].height);Point marker[4]={{psx,psy-13},{psx+10,psy},{psx,psy+13},{psx-10,psy}};
     polygon(base,stride,marker,4,color(255,245,220));Point inner[4]={{psx,psy-7},{psx+5,psy},{psx,psy+7},{psx-5,psy}};
     polygon(base,stride,inner,4,color(45,48,55));
     rect(base,stride,22,18,520,104,color(24,31,42));
