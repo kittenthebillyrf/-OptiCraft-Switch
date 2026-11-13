@@ -59,6 +59,8 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y zlib1g-dev
       - name: Run Switch AWT surface bridge host test
         run: sh runtime/awt/tests/run_host_test.sh
+      - name: Run Java SwitchWindow native bridge host test
+        run: sh runtime/awt/tests/run_switch_window_native_smoke.sh
       - name: Run selected world preview host tests
         run: sh runtime/world/tests/run_world_preview_test.sh
       - name: Run legacy Anvil chunk host tests
