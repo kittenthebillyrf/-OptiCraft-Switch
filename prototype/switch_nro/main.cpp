@@ -12,8 +12,8 @@
 
 namespace {
 constexpr int SW=1280, SH=720, MAP_W=48, MAP_H=48, TILE_W=48, TILE_H=24;
-enum Tile:uint8_t { Grass,Water,Sand,Stone,Wood,Brick };
-struct Cell { Tile type; uint8_t height; bool player_placed; };
+enum Tile:uint8_t { Grass,Water,Sand,Stone,Wood,Brick,Lava,Wool };
+struct Cell { Tile type; uint8_t height; bool player_placed; uint8_t metadata=0; };
 struct Point { int x,y; };
 std::array<uint32_t,SW*SH> frame_pixels{};
 OptiInputSnapshot input{};
@@ -108,6 +108,27 @@ void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool
         case Stone:top=color(135,139,145);left=color(83,87,94);right=color(104,108,115);break;
         case Wood:top=color(154,102,55);left=color(95,58,29);right=color(119,75,38);break;
         case Brick:top=color(165,76,63);left=color(102,42,37);right=color(133,57,48);break;
+        case Lava:top=color(255,111,20);left=color(180,54,8);right=color(220,78,10);break;
+        case Wool:
+            switch(cell.metadata&15){
+                case 0:top=color(235,235,235);left=color(150,150,150);right=color(190,190,190);break;
+                case 1:top=color(232,120,35);left=color(150,70,20);right=color(190,92,25);break;
+                case 2:top=color(190,70,190);left=color(110,35,110);right=color(150,50,150);break;
+                case 3:top=color(90,145,220);left=color(45,75,140);right=color(65,110,180);break;
+                case 4:top=color(230,205,45);left=color(145,125,20);right=color(185,160,30);break;
+                case 5:top=color(105,175,45);left=color(55,100,20);right=color(80,135,30);break;
+                case 6:top=color(220,135,155);left=color(140,75,95);right=color(180,105,125);break;
+                case 7:top=color(80,80,80);left=color(35,35,35);right=color(55,55,55);break;
+                case 8:top=color(165,165,165);left=color(95,95,95);right=color(130,130,130);break;
+                case 9:top=color(70,175,175);left=color(35,95,95);right=color(50,135,135);break;
+                case 10:top=color(125,65,175);left=color(65,30,95);right=color(95,45,135);break;
+                case 11:top=color(55,65,155);left=color(25,30,85);right=color(40,45,120);break;
+                case 12:top=color(115,75,45);left=color(60,35,20);right=color(85,50,30);break;
+                case 13:top=color(85,115,40);left=color(40,60,15);right=color(60,85,25);break;
+                case 14:top=color(175,45,40);left=color(90,20,20);right=color(130,30,30);break;
+                default:top=color(35,35,35);left=color(10,10,10);right=color(20,20,20);break;
+            }
+            break;
         default:break;
     }
     Point t[4]={{sx,sy-hh-drop},{sx+hw,sy-drop},{sx,sy+hh-drop},{sx-hw,sy-drop}};
@@ -187,13 +208,19 @@ void load_selected_world_chunk(){
                         world_saves[selected_world_index].folder);
     if(n<0||static_cast<size_t>(n)>=sizeof(directory)){generate_world();return;}
     for(int z=0;z<MAP_H;++z)for(int x=0;x<MAP_W;++x)world[z][x]={Grass,0,false};
-    auto map_block=[](uint8_t id)->Tile{
+    auto map_block=[](uint16_t id)->Tile{
         switch(id){
             case 8:case 9:return Water;
-            case 12:return Sand;
-            case 1:case 4:case 14:case 15:case 16:case 21:case 48:case 49:return Stone;
-            case 5:case 17:case 18:return Wood;
-            case 45:return Brick;
+            case 10:case 11:return Lava;
+            case 12:case 13:case 24:return Sand;
+            case 1:case 4:case 14:case 15:case 16:case 21:case 22:case 23:
+            case 48:case 49:case 56:case 57:case 73:case 74:case 79:case 82:
+            case 87:case 88:case 89:case 98:case 112:case 155:return Stone;
+            case 5:case 17:case 18:case 25:case 47:case 53:case 54:case 58:
+            case 61:case 62:case 64:case 85:case 86:case 91:case 96:case 107:
+            case 126:case 134:case 146:case 162:case 163:case 164:case 170:return Wood;
+            case 35:return Wool;
+            case 45:case 159:case 172:return Brick;
             default:return Grass;
         }
     };
@@ -211,7 +238,7 @@ void load_selected_world_chunk(){
             const int index=z*16+x;
             const int elevation=std::clamp((static_cast<int>(chunk.height[index])-60)/4,0,3);
             world[base_z+z][base_x+x]={
-                map_block(chunk.block_id[index]),static_cast<uint8_t>(elevation),false
+                map_block(chunk.block_id[index]),static_cast<uint8_t>(elevation),false,chunk.metadata[index]
             };
         }
     }
