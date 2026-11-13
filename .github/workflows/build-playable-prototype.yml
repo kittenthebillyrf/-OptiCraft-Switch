@@ -10,6 +10,8 @@ on:
       - "runtime/platform/**"
       - "runtime/input/**"
       - "runtime/world/**"
+      - "runtime/java/**"
+      - "tools/audit_java125_jar.py"
       - ".github/workflows/build-playable-prototype.yml"
 permissions:
   contents: read
@@ -22,6 +24,8 @@ jobs:
       DEVKITPRO: /opt/devkitpro
     steps:
       - uses: actions/checkout@v4
+      - name: Syntax-check original Java JAR audit tool
+        run: python3 -m py_compile tools/audit_java125_jar.py
       - name: Restore Java world reader sources
         run: tar -xzf runtime/world/world_reader_v126.tar.gz -C "$GITHUB_WORKSPACE"
       - name: Verify toolchain
