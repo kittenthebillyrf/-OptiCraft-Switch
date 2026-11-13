@@ -164,30 +164,28 @@ void load_selected_world_preview(){
 }
 void load_selected_world_chunk(){
     world_chunk={};world_chunk_loaded=false;
-    if(!world_preview_loaded)return;
+    if(!world_preview_loaded){generate_world();return;}
     const int32_t sx=world_preview.has_spawn?world_preview.spawn_x:0;
     const int32_t sz=world_preview.has_spawn?world_preview.spawn_z:0;
-    if(opticraft_world_read_spawn_chunk(
-        "sdmc:/switch/opticraft/saves/",sx,sz,&world_chunk)!=0)return;
     char directory[512];
     int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
                         world_saves[selected_world_index].folder);
-    if(n<0||static_cast<size_t>(n)>=sizeof(directory))return;
-    if(opticraft_world_read_spawn_chunk(directory,sx,sz,&world_chunk)!=0)return;
+    if(n<0||static_cast<size_t>(n)>=sizeof(directory)){generate_world();return;}
+    if(opticraft_world_read_spawn_chunk(directory,sx,sz,&world_chunk)!=0){generate_world();return;}
     auto map_block=[](uint8_t id)->Tile{
         switch(id){
             case 8:case 9:return Water;
             case 12:return Sand;
             case 1:case 4:case 14:case 15:case 16:case 21:case 48:case 49:return Stone;
-            case 5:case 17:case 18:case  log:return Wood;
-            case 45:case  brick_block:return Brick;
+            case 5:case 17:case 18:return Wood;
+            case 45:return Brick;
             default:return Grass;
         }
     };
     for(int z=0;z<16;++z)for(int x=0;x<16;++x){
         const int index=z*16+x;
-        world[z][x]={map_block(world_chunk.block_id[index]),
-                     static_cast<uint8_t>(std::min<int>(3,world_chunk.height[index]/64)),false};
+        const int elevation=std::clamp((static_cast<int>(world_chunk.height[index])-60)/4,0,3);
+        world[z][x]={map_block(world_chunk.block_id[index]),static_cast<uint8_t>(elevation),false};
     }
     px=world_preview.has_spawn?((sx%16)+16)%16:8;
     py=world_preview.has_spawn?((sz%16)+16)%16:8;
