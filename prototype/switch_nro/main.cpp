@@ -11,14 +11,14 @@
 #include <sys/stat.h>
 
 namespace {
-constexpr int SW=1280, SH=720, MAP_W=16, MAP_H=16, TILE_W=48, TILE_H=24;
+constexpr int SW=1280, SH=720, MAP_W=48, MAP_H=48, TILE_W=48, TILE_H=24;
 enum Tile:uint8_t { Grass,Water,Sand,Stone,Wood,Brick };
 struct Cell { Tile type; uint8_t height; bool player_placed; };
 struct Point { int x,y; };
 std::array<uint32_t,SW*SH> frame_pixels{};
 OptiInputSnapshot input{};
 Cell world[MAP_H][MAP_W]{};
-int px=8,py=8,fx=1,fy=0;
+int px=24,py=24,fx=1,fy=0;
 Tile selected=Wood;
 unsigned frame_no=0;
 constexpr size_t MAX_WORLD_SAVES=8;
@@ -29,6 +29,7 @@ OpticraftWorldPreview world_preview{};
 bool world_preview_loaded=false;
 OpticraftAnvilChunkPreview world_chunk{};
 bool world_chunk_loaded=false;
+int world_chunks_loaded=0;
 bool sd_mounted=false;
 
 uint32_t color(uint8_t r,uint8_t g,uint8_t b){return RGBA8(r,g,b,255);}
@@ -150,28 +151,30 @@ void update_game(){
         if((buttons&OPTI_BUTTON_B)&&world[ty][tx].player_placed)world[ty][tx]={Grass,1,false};
     }
     if((buttons&OPTI_BUTTON_X)&&(frame_no%12)==0)selected=static_cast<Tile>((static_cast<int>(selected-Wood)+1)%2+Wood);
-    if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=8;py=8;generate_world();}
+    if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=24;py=24;world_chunk_loaded=false;world_chunks_loaded=0;generate_world();}
 }
 void load_selected_world_preview(){
-    world_preview={};world_preview_loaded=false;
-    if(world_save_count<=0||selected_world_index<0||selected_world_index>=world_save_count)return;
-    char directory[512];
-    int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
-                        world_saves[selected_world_index].folder);
-    if(n<0||static_cast<size_t>(n)>=sizeof(directory))return;
-    world_preview_loaded=opticraft_world_save_read_preview(directory,&world_preview)==0;
-    load_selected_world_chunk();
-}
-void load_selected_world_chunk(){
-    world_chunk={};world_chunk_loaded=false;
-    if(!world_preview_loaded){generate_world();return;}
-    const int32_t sx=world_preview.has_spawn?world_preview.spawn_x:0;
-    const int32_t sz=world_preview.has_spawn?world_preview.spawn_z:0;
+    world_preview={};world_preview_loaded=false;world_chunk_loaded=false;world_chunks_loaded=0;
+    if(world_save_count<=0||selected_world_index<0||selected_world_index>=world_save_count){
+        generate_world();return;
+    }
     char directory[512];
     int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
                         world_saves[selected_world_index].folder);
     if(n<0||static_cast<size_t>(n)>=sizeof(directory)){generate_world();return;}
-    if(opticraft_world_read_spawn_chunk(directory,sx,sz,&world_chunk)!=0){generate_world();return;}
+    world_preview_loaded=opticraft_world_save_read_preview(directory,&world_preview)==0;
+    load_selected_world_chunk();
+}
+void load_selected_world_chunk(){
+    world_chunk={};world_chunk_loaded=false;world_chunks_loaded=0;
+    if(!world_preview_loaded){generate_world();return;}
+    const int32_t spawn_x=world_preview.has_spawn?world_preview.spawn_x:0;
+    const int32_t spawn_z=world_preview.has_spawn?world_preview.spawn_z:0;
+    char directory[512];
+    int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
+                        world_saves[selected_world_index].folder);
+    if(n<0||static_cast<size_t>(n)>=sizeof(directory)){generate_world();return;}
+    for(int z=0;z<MAP_H;++z)for(int x=0;x<MAP_W;++x)world[z][x]={Grass,0,false};
     auto map_block=[](uint8_t id)->Tile{
         switch(id){
             case 8:case 9:return Water;
@@ -182,14 +185,27 @@ void load_selected_world_chunk(){
             default:return Grass;
         }
     };
-    for(int z=0;z<16;++z)for(int x=0;x<16;++x){
-        const int index=z*16+x;
-        const int elevation=std::clamp((static_cast<int>(world_chunk.height[index])-60)/4,0,3);
-        world[z][x]={map_block(world_chunk.block_id[index]),static_cast<uint8_t>(elevation),false};
+    for(int dz=-1;dz<=1;++dz)for(int dx=-1;dx<=1;++dx){
+        OpticraftAnvilChunkPreview chunk{};
+        const int32_t sample_x=spawn_x+dx*16;
+        const int32_t sample_z=spawn_z+dz*16;
+        if(opticraft_world_read_spawn_chunk(directory,sample_x,sample_z,&chunk)!=0)continue;
+        ++world_chunks_loaded;
+        if(dx==0&&dz==0)world_chunk=chunk;
+        const int base_x=(dx+1)*16;
+        const int base_z=(dz+1)*16;
+        for(int z=0;z<16;++z)for(int x=0;x<16;++x){
+            const int index=z*16+x;
+            const int elevation=std::clamp((static_cast<int>(chunk.height[index])-60)/4,0,3);
+            world[base_z+z][base_x+x]={
+                map_block(chunk.block_id[index]),static_cast<uint8_t>(elevation),false
+            };
+        }
     }
-    px=world_preview.has_spawn?((sx%16)+16)%16:8;
-    py=world_preview.has_spawn?((sz%16)+16)%16:8;
-    world_chunk_loaded=true;
+    if(world_chunks_loaded==0){generate_world();return;}
+    px=16+(world_preview.has_spawn?((spawn_x%16)+16)%16:8);
+    py=16+(world_preview.has_spawn?((spawn_z%16)+16)%16:8);
+    world_chunk_loaded=world_chunks_loaded>0;
 }
 void draw_world_catalog(uint8_t* base,uint32_t stride){
     const int x=SW-360,y=18,w=338,h=210;
@@ -231,7 +247,9 @@ void draw_world_catalog(uint8_t* base,uint32_t stride){
             (world_saves[save_index].has_level_dat?color(224,232,242):color(255,190,120));
         draw_text(base,stride,x+14,y+86+i*20,label,name_color,1);
     }
-    if(world_save_count>shown)draw_text(base,stride,x+14,y+190,"L/R TO SCROLL",color(177,220,255),1);
+    char chunk_line[48];
+    std::snprintf(chunk_line,sizeof(chunk_line),"CHUNKS LOADED: %d/9",world_chunks_loaded);
+    draw_text(base,stride,x+14,y+190,chunk_line,color(177,220,255),1);
 }
 void render(){
     const uint32_t stride=SW*static_cast<uint32_t>(sizeof(uint32_t));
@@ -250,7 +268,7 @@ void render(){
     polygon(base,stride,inner,4,color(45,48,55));
     rect(base,stride,22,18,520,104,color(24,31,42));
     draw_text(base,stride,42,34,"OPTICRAFT",color(255,255,255),3);
-    draw_text(base,stride,42,76,world_chunk_loaded?"JAVA SAVE CHUNK LOADED":"WORLD PROTOTYPE  0.1",color(177,220,255),2);
+    draw_text(base,stride,42,76,world_chunk_loaded?"JAVA SAVE AREA LOADED":"WORLD PROTOTYPE  0.1",color(177,220,255),2);
     rect(base,stride,22,SH-112,SW-44,88,color(24,31,42));
     char line[96];std::snprintf(line,sizeof(line),"POS %02d/%02d  BLOCK %s",px,py,selected==Wood?"WOOD":"BRICK");
     draw_text(base,stride,42,SH-94,line,color(255,255,255),2);
