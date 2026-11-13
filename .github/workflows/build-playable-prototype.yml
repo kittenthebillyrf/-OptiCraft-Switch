@@ -71,6 +71,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Compile SwitchWindow Java facade
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build/switch-window-java"
+          javac -source 7 -target 7 -d "$GITHUB_WORKSPACE/build/switch-window-java" \
+            "$GITHUB_WORKSPACE/runtime/awt/java/org/lwjgl/switchport/SwitchWindow.java"
       - name: Build JNI input bridge and run Java smoke test
         shell: bash
         run: |
