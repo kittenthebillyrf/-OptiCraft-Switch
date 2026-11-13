@@ -2,9 +2,9 @@ name: Build OptiCraft playable Switch prototype
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129", "runtime/world-neighborhood-v130", "runtime/world-stream-v131", "runtime/chunk-metadata-v132", "runtime/terrain-textures-v133"]
+    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129", "runtime/world-neighborhood-v130", "runtime/world-stream-v131", "runtime/chunk-metadata-v132", "runtime/terrain-textures-v133", "runtime/side-textures-v134"]
   push:
-    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129", "runtime/world-neighborhood-v130", "runtime/world-stream-v131", "runtime/chunk-metadata-v132", "runtime/terrain-textures-v133"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129", "runtime/world-neighborhood-v130", "runtime/world-stream-v131", "runtime/chunk-metadata-v132", "runtime/terrain-textures-v133", "runtime/side-textures-v134"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
