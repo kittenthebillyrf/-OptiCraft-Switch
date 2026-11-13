@@ -116,7 +116,7 @@ bool inspect_main(const std::vector<uint8_t>& c,size_t& code_size,std::string& e
             uint16_t an; uint32_t len; if(!r.u2(an)||!r.u4(len)||!range(r.p,len,c.size())) { error="bad method attribute"; return false; }
             const std::string attr=(an<utf.size()?utf[an]:std::string());
             if(name<utf.size()&&desc<utf.size()&&utf[name]=="main"&&utf[desc]=="([Ljava/lang/String;)V"&&attr=="Code") {
-                Reader cr{c}; cr.p=r.p; uint16_t ms,ml,ex,ac; uint32_t clen;
+                Reader cr{c}; cr.p=r.p; uint16_t ms,ml; uint32_t clen;
                 if(!cr.u2(ms)||!cr.u2(ml)||!cr.u4(clen)||clen>65535||!cr.take(clen)) { error="invalid main Code attribute"; return false; }\n                (void)ms; (void)ml;
                 code_size=clen; found=true;
             }
