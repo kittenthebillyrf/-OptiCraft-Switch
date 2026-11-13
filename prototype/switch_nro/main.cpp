@@ -123,6 +123,7 @@ void move_player(int dx,int dy){
     int nx=std::clamp(px+dx,0,MAP_W-1),ny=std::clamp(py+dy,0,MAP_H-1);
     if(world[ny][nx].type!=Water){px=nx;py=ny;}
 }
+void load_selected_world_preview();
 void update_game(){
     int dx=0,dy=0;const uint64_t buttons=input.buttons;
     if(world_save_count>0){
@@ -182,20 +183,21 @@ void draw_world_catalog(uint8_t* base,uint32_t stride){
     }
     const int shown=std::min(world_save_count,5);
     for(int i=0;i<shown;++i){
+        const int save_index=(selected_world_index+i)%world_save_count;
         char label[OPTICRAFT_WORLD_FOLDER_MAX];
         size_t j=0;
-        for(;j<sizeof(label)-1 && world_saves[i].folder[j];++j){
+        for(;j<sizeof(label)-1 && world_saves[save_index].folder[j];++j){
             char ch=world_saves[i].folder[j];
             if(ch>='a'&&ch<='z')ch=static_cast<char>(ch-'a'+'A');
             if(!((ch>='A'&&ch<='Z')||(ch>='0'&&ch<='9')||ch==' '||ch=='-'||ch=='_'))ch='-';
             label[j]=ch;
         }
         label[j]='\0';
-        const uint32_t name_color=i==selected_world_index?color(255,236,80):
-            (world_saves[i].has_level_dat?color(224,232,242):color(255,190,120));
+        const uint32_t name_color=i==0?color(255,236,80):
+            (world_saves[save_index].has_level_dat?color(224,232,242):color(255,190,120));
         draw_text(base,stride,x+14,y+86+i*20,label,name_color,1);
     }
-    if(world_save_count>shown)draw_text(base,stride,x+14,y+190,"MORE WORLDS",color(177,220,255),1);
+    if(world_save_count>shown)draw_text(base,stride,x+14,y+190,"L/R TO SCROLL",color(177,220,255),1);
 }
 void render(){
     const uint32_t stride=SW*static_cast<uint32_t>(sizeof(uint32_t));
