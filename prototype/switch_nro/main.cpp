@@ -105,7 +105,18 @@ void generate_world(){
 void draw_textured_top(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,int drop){
     if(!terrain_atlas_loaded||terrain_atlas.width<256||terrain_atlas.height<256||!terrain_atlas.rgba)return;
     int tx=1,ty=0;
-    switch(cell.block_id){
+    if(cell.block_id==0){
+        switch(cell.type){
+            case Grass:tx=0;ty=0;break;
+            case Water:tx=0;ty=8;break;
+            case Sand:tx=2;ty=1;break;
+            case Stone:tx=1;ty=0;break;
+            case Wood:tx=4;ty=0;break;
+            case Brick:tx=7;ty=0;break;
+            case Lava:tx=14;ty=10;break;
+            case Wool:tx=0;ty=4;break;
+        }
+    }else switch(cell.block_id){
         case 2:tx=0;ty=0;break;
         case 3:tx=2;ty=0;break;
         case 12:tx=2;ty=1;break;
