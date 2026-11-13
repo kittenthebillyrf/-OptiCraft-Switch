@@ -3,7 +3,7 @@
 #include <cstdint>
 
 int main() {
-    assert(opticraft_platform_init());
+    assert(opticraft_platform_init() == 0);
     OptiAwtWindow window{};
     assert(opticraft_awt_window_init(&window, 854, 480));
     assert(window.width == 854 && window.height == 480);
@@ -15,7 +15,7 @@ int main() {
     assert(pixels != nullptr && stride == 960);
     pixels[0] = 0xff336699u;
     opticraft_awt_window_set_visible(&window, 1);
-    assert(opticraft_awt_window_present(&window));
+    assert(opticraft_awt_window_present(&window) == -10); // Host backend intentionally has no display.
     OptiInputSnapshot input{};
     assert(opticraft_awt_window_poll(&window, &input));
     opticraft_awt_window_shutdown(&window);
