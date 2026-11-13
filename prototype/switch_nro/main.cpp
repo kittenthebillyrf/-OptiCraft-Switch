@@ -375,7 +375,8 @@ void render(){
 int main(int argc,char** argv){
     (void)argc;(void)argv;if(!init_platform())return 1;
     sd_mounted = fsdevMountSdmc() == 0;
-    if(sd_mounted)terrain_atlas_loaded=opticraft_texture_load_terrain_from_jar(\n        "sdmc:/switch/opticraft/minecraft.jar",&terrain_atlas)==0;
+    if(sd_mounted)terrain_atlas_loaded=opticraft_texture_load_terrain_from_jar(
+        "sdmc:/switch/opticraft/minecraft.jar",&terrain_atlas)==0;
     if(sd_mounted){
         (void)mkdir("sdmc:/switch",0777);
         (void)mkdir("sdmc:/switch/opticraft",0777);
