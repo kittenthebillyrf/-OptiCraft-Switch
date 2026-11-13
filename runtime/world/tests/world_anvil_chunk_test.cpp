@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
