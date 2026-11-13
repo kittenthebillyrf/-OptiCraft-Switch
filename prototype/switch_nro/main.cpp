@@ -267,7 +267,7 @@ void render(){
     polygon(base,stride,inner,4,color(45,48,55));
     rect(base,stride,22,18,520,104,color(24,31,42));
     draw_text(base,stride,42,34,"OPTICRAFT",color(255,255,255),3);
-    draw_text(base,stride,42,76,world_chunk_loaded?"JAVA SAVE CHUNK LOADED":"WORLD PROTOTYPE  0.1",color(177,220,255),2);
+    draw_text(base,stride,42,76,world_chunk_loaded?"JAVA SAVE AREA LOADED":"WORLD PROTOTYPE  0.1",color(177,220,255),2);
     rect(base,stride,22,SH-112,SW-44,88,color(24,31,42));
     char line[96];std::snprintf(line,sizeof(line),"POS %02d/%02d  BLOCK %s",px,py,selected==Wood?"WOOD":"BRICK");
     draw_text(base,stride,42,SH-94,line,color(255,255,255),2);
