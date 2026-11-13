@@ -38,6 +38,6 @@ int main(){
  std::memcpy(region.data()+off+5,compressed.data(),compressed.size());
  assert(std::fwrite(region.data(),1,region.size(),f)==region.size());std::fclose(f);
  OpticraftAnvilChunkPreview out{};const int result=opticraft_world_read_spawn_chunk(root,0,0,&out);std::fprintf(stderr,"reader result=%d valid=%u block=%u height=%u\n",result,out.valid_columns,out.block_id[50],out.height[50]);assert(result==0);
- const int cell=3*16+2;assert(out.block_id[cell]==259&&out.metadata[cell]==7&&out.height[cell]==5);assert(out.valid_columns==1);
+ const int cell=3*16+2;assert(out.block_id[cell]==259&&out.metadata[cell]==7&&out.height[cell]==5);assert(out.valid_columns==1);\n assert(out.side_count[cell]==2&&out.side_block_id[cell][0]==259&&out.side_block_y[cell][0]==5&&out.side_block_id[cell][1]==2&&out.side_block_y[cell][1]==4);
  std::puts("PASS Anvil region + zlib + legacy Blocks/Data/Add nibble decoding");
 }
