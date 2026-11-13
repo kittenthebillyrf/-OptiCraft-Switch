@@ -30,7 +30,7 @@ int main(){
  const size_t off=2*4096;region[off]=length>>24;region[off+1]=length>>16;region[off+2]=length>>8;region[off+3]=length;region[off+4]=2;
  std::memcpy(region.data()+off+5,compressed.data(),compressed.size());
  assert(std::fwrite(region.data(),1,region.size(),f)==region.size());std::fclose(f);
- OpticraftAnvilChunkPreview out{};const int result=opticraft_world_read_spawn_chunk(root,0,0,&out);std::printf("reader result=%d valid=%u block=%u height=%u\\n",result,out.valid_columns,out.block_id[50],out.height[50]);assert(result==0);
+ OpticraftAnvilChunkPreview out{};const int result=opticraft_world_read_spawn_chunk(root,0,0,&out);std::fprintf(stderr,"reader result=%d valid=%u block=%u height=%u\n",result,out.valid_columns,out.block_id[50],out.height[50]);assert(result==0);
  const int cell=3*16+2;assert(out.block_id[cell]==3&&out.height[cell]==5);assert(out.valid_columns==1);
  std::puts("PASS Anvil region header + zlib + legacy Sections/Blocks");
 }
