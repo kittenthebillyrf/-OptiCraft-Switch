@@ -2,9 +2,11 @@
 #include <algorithm>
 #include <array>
 #include "opticraft_platform.h"
+#include "world_save_catalog.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <sys/stat.h>
 
 namespace {
 constexpr int SW=1280, SH=720, MAP_W=16, MAP_H=16, TILE_W=48, TILE_H=24;
@@ -17,6 +19,10 @@ Cell world[MAP_H][MAP_W]{};
 int px=8,py=8,fx=1,fy=0;
 Tile selected=Wood;
 unsigned frame_no=0;
+constexpr size_t MAX_WORLD_SAVES=8;
+OpticraftWorldCatalogEntry world_saves[MAX_WORLD_SAVES]{};
+int world_save_count=-1;
+bool sd_mounted=false;
 
 uint32_t color(uint8_t r,uint8_t g,uint8_t b){return RGBA8(r,g,b,255);}
 uint32_t* row_at(uint8_t* base,uint32_t stride,int y){return reinterpret_cast<uint32_t*>(base+static_cast<size_t>(y)*stride);}
@@ -128,6 +134,39 @@ void update_game(){
     if((buttons&OPTI_BUTTON_X)&&(frame_no%12)==0)selected=static_cast<Tile>((static_cast<int>(selected-Wood)+1)%2+Wood);
     if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=8;py=8;generate_world();}
 }
+void draw_world_catalog(uint8_t* base,uint32_t stride){
+    const int x=SW-360,y=18,w=338,h=160;
+    rect(base,stride,x,y,w,h,color(24,31,42));
+    draw_text(base,stride,x+14,y+12,"JAVA SAVES",color(255,255,255),2);
+    if(world_save_count<0){
+        draw_text(base,stride,x+14,y+42,"SD CARD NOT READY",color(255,190,120),1);
+        draw_text(base,stride,x+14,y+62,"CHECK SDMC PATH",color(210,220,232),1);
+        return;
+    }
+    char count_line[48];
+    std::snprintf(count_line,sizeof(count_line),"FOUND: %d",world_save_count);
+    draw_text(base,stride,x+14,y+42,count_line,color(177,220,255),1);
+    if(world_save_count==0){
+        draw_text(base,stride,x+14,y+66,"NO SAVES FOUND",color(210,220,232),1);
+        draw_text(base,stride,x+14,y+88,"ADD JAVA WORLD FOLDER",color(210,220,232),1);
+        return;
+    }
+    const int shown=std::min(world_save_count,4);
+    for(int i=0;i<shown;++i){
+        char label[OPTICRAFT_WORLD_FOLDER_MAX];
+        size_t j=0;
+        for(;j<sizeof(label)-1 && world_saves[i].folder[j];++j){
+            char c=world_saves[i].folder[j];
+            if(c>='a'&&c<='z')c=static_cast<char>(c-'a'+'A');
+            if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9')||c==' '||c=='-'||c=='_'))c='-';
+            label[j]=c;
+        }
+        label[j]='\\0';
+        draw_text(base,stride,x+14,y+66+i*20,label,
+                  world_saves[i].has_level_dat?color(224,232,242):color(255,190,120),1);
+    }
+    if(world_save_count>shown)draw_text(base,stride,x+14,y+146,"MORE WORLDS",color(177,220,255),1);
+}
 void render(){
     const uint32_t stride=SW*static_cast<uint32_t>(sizeof(uint32_t));
     auto* base=reinterpret_cast<uint8_t*>(frame_pixels.data());
@@ -150,17 +189,30 @@ void render(){
     char line[96];std::snprintf(line,sizeof(line),"POS %02d/%02d  BLOCK %s",px,py,selected==Wood?"WOOD":"BRICK");
     draw_text(base,stride,42,SH-94,line,color(255,255,255),2);
     draw_text(base,stride,42,SH-62,"DPAD MOVE  A PLACE  B BREAK  X BLOCK  Y NEW WORLD",color(224,232,242),2);
+    draw_world_catalog(base,stride);
     draw_text(base,stride,SW-180,34,"PLUS EXIT",color(255,255,255),2);
     (void)opticraft_platform_present_rgba8888(frame_pixels.data(),SW,SH,SW);
 }
 } // namespace
 
 int main(int argc,char** argv){
-    (void)argc;(void)argv;if(!init_platform())return 1;generate_world();
+    (void)argc;(void)argv;if(!init_platform())return 1;
+    sd_mounted = fsdevMountSdmc() == 0;
+    if(sd_mounted){
+        (void)mkdir("sdmc:/switch",0777);
+        (void)mkdir("sdmc:/switch/opticraft",0777);
+        (void)mkdir("sdmc:/switch/opticraft/saves",0777);
+        world_save_count=opticraft_world_catalog_scan(
+            "sdmc:/switch/opticraft/saves",world_saves,MAX_WORLD_SAVES);
+    }else{
+        world_save_count=-1;
+    }
+    generate_world();
     while(appletMainLoop()){
         if(!poll_pad()){++frame_no;continue;}
         if(input.should_exit)break;
         update_game();render();++frame_no;
     }
+    if(sd_mounted)fsdevUnmountDevice("sdmc");
     shutdown_platform();return 0;
 }
