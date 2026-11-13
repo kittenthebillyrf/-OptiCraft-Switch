@@ -68,7 +68,8 @@ bool decode_png(const std::vector<unsigned char>& png,OpticraftTextureAtlas& out
   uint32_t length=be32(png.data()+p);if(uint64_t(p)+12+length>png.size())return false;
   const unsigned char* tag=png.data()+p+4;const unsigned char* data=png.data()+p+8;
   if(std::memcmp(tag,"IHDR",4)==0){
-   if(length!=13)return false;width=be32(data);height=be32(data+4);depth=data[8];type=data[9];interlace=data[12];have_header=true;
+   if(length!=13)return false;
+   width=be32(data);height=be32(data+4);depth=data[8];type=data[9];interlace=data[12];have_header=true;
   }else if(std::memcmp(tag,"IDAT",4)==0){
    if(compressed.size()+length>8u*1024u*1024u)return false;
    compressed.insert(compressed.end(),data,data+length);
@@ -103,12 +104,17 @@ bool decode_png(const std::vector<unsigned char>& png,OpticraftTextureAtlas& out
 }
 }
 extern "C" int opticraft_texture_load_terrain_from_jar(const char* jar_path,OpticraftTextureAtlas* output){
- if(!jar_path||!output)return -2;output->width=output->height=0;output->rgba=nullptr;
+ if(!jar_path||!output)return -2;
+ output->width=output->height=0;
+ output->rgba=nullptr;
  std::vector<unsigned char> jar,png;if(!read_file(jar_path,jar))return -1;
  if(!extract_zip_entry(jar,"terrain.png",png))return -3;
  if(!decode_png(png,*output)){opticraft_texture_atlas_free(output);return -4;}
  return 0;
 }
 extern "C" void opticraft_texture_atlas_free(OpticraftTextureAtlas* atlas){
- if(!atlas)return;std::free(atlas->rgba);atlas->rgba=nullptr;atlas->width=atlas->height=0;
+ if(!atlas)return;
+ std::free(atlas->rgba);
+ atlas->rgba=nullptr;
+ atlas->width=atlas->height=0;
 }
