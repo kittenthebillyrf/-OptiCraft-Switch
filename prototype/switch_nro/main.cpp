@@ -197,13 +197,14 @@ void load_selected_world_chunk(){
             default:return Grass;
         }
     };
+    bool center_chunk_loaded=false;
     for(int dz=-1;dz<=1;++dz)for(int dx=-1;dx<=1;++dx){
         OpticraftAnvilChunkPreview chunk{};
         const int32_t sample_x=center_x+dx*16;
         const int32_t sample_z=center_z+dz*16;
         if(opticraft_world_read_spawn_chunk(directory,sample_x,sample_z,&chunk)!=0)continue;
         ++world_chunks_loaded;
-        if(dx==0&&dz==0)world_chunk=chunk;
+        if(dx==0&&dz==0){world_chunk=chunk;center_chunk_loaded=true;}
         const int base_x=(dx+1)*16;
         const int base_z=(dz+1)*16;
         for(int z=0;z<16;++z)for(int x=0;x<16;++x){
@@ -214,10 +215,10 @@ void load_selected_world_chunk(){
             };
         }
     }
-    if(world_chunks_loaded==0){generate_world();return;}
+    if(!center_chunk_loaded){world_chunks_loaded=0;generate_world();return;}
     px=16+((center_x%16)+16)%16;
     py=16+((center_z%16)+16)%16;
-    world_chunk_loaded=world_chunks_loaded>0;
+    world_chunk_loaded=true;
 }
 void draw_world_catalog(uint8_t* base,uint32_t stride){
     const int x=SW-360,y=18,w=338,h=210;
