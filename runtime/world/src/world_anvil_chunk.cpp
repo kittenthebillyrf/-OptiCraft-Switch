@@ -50,7 +50,7 @@ bool parse_level(Cursor& c,OpticraftAnvilChunkPreview& out){
 }
 bool parse_chunk_nbt(const std::vector<unsigned char>& bytes,OpticraftAnvilChunkPreview& out){
  Cursor c{bytes.data(),bytes.size(),0};uint8_t root=0;if(!u8(c,root)||root!=10)return false;std::string root_name;if(!str(c,root_name))return false;
- for(;;){uint8_t t=0;if(!u8(c,t))return false;if(t==0)return out.valid_columns!=0;std::string name;if(!str(c,name))return false;
+ for(;;){uint8_t t=0;if(!u8(c,t))return false;if(t==0)return true;std::string name;if(!str(c,name))return false;
   if(name=="Level"&&t==10){if(!parse_level(c,out))return false;}
   else if(!skip(c,t,0))return false;
  }
