@@ -174,7 +174,8 @@ void load_selected_world_chunk(){
     int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
                         world_saves[selected_world_index].folder);
     if(n<0||static_cast<size_t>(n)>=sizeof(directory)){generate_world();return;}
-    for(int z=0;z<MAP_H;++z)for(int x=0;x<MAP_W;++x)world[z][x]={Grass,0,false};\n    auto map_block=[](uint8_t id)->Tile{
+    for(int z=0;z<MAP_H;++z)for(int x=0;x<MAP_W;++x)world[z][x]={Grass,0,false};
+    auto map_block=[](uint8_t id)->Tile{
         switch(id){
             case 8:case 9:return Water;
             case 12:return Sand;
