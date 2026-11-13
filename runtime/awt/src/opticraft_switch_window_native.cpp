@@ -30,6 +30,15 @@ extern "C" void opticraft_switch_window_set_visible(int32_t visible) {
 extern "C" int32_t opticraft_switch_window_poll(void) {
     return opticraft_awt_window_poll(&g_window, &g_input);
 }
+extern "C" uint64_t opticraft_switch_window_buttons(void) { return g_input.buttons; }
+extern "C" uint64_t opticraft_switch_window_pressed(void) { return g_input.pressed; }
+extern "C" int32_t opticraft_switch_window_left_x(void) { return g_input.left_x; }
+extern "C" int32_t opticraft_switch_window_left_y(void) { return g_input.left_y; }
+extern "C" int32_t opticraft_switch_window_right_x(void) { return g_input.right_x; }
+extern "C" int32_t opticraft_switch_window_right_y(void) { return g_input.right_y; }
+extern "C" int32_t opticraft_switch_window_touch_x(void) { return g_input.touch_x; }
+extern "C" int32_t opticraft_switch_window_touch_y(void) { return g_input.touch_y; }
+extern "C" int32_t opticraft_switch_window_touch_down(void) { return g_input.touch_down ? 1 : 0; }
 extern "C" uint64_t opticraft_switch_window_framebuffer_address(void) {
     int32_t stride = 0;
     uint32_t *pixels = opticraft_awt_window_pixels(&g_window, &stride);
