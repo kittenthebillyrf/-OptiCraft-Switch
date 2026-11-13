@@ -17,6 +17,15 @@ public final class SwitchWindow {
     public static native void pack();
     public static native void setVisible(boolean visible);
     public static native boolean poll();
+    public static native long buttons();
+    public static native long pressed();
+    public static native int leftX();
+    public static native int leftY();
+    public static native int rightX();
+    public static native int rightY();
+    public static native int touchX();
+    public static native int touchY();
+    public static native boolean touchDown();
     public static native long framebufferAddress();
     public static native int framebufferStride();
     public static native boolean present();
