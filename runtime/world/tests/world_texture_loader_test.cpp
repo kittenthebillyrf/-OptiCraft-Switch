@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <zlib.h>
+#include <unistd.h>
 static void le16(std::vector<unsigned char>&v,unsigned x){v.push_back(x);v.push_back(x>>8);}
 static void le32(std::vector<unsigned char>&v,unsigned x){v.push_back(x);v.push_back(x>>8);v.push_back(x>>16);v.push_back(x>>24);}
 static void be32(std::vector<unsigned char>&v,unsigned x){v.push_back(x>>24);v.push_back(x>>16);v.push_back(x>>8);v.push_back(x);}
