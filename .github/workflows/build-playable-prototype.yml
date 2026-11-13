@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129"]
   push:
-    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
