@@ -14,7 +14,14 @@
 namespace {
 constexpr int SW=1280, SH=720, MAP_W=48, MAP_H=48, TILE_W=48, TILE_H=24;
 enum Tile:uint8_t { Grass,Water,Sand,Stone,Wood,Brick,Lava,Wool };
-struct Cell { Tile type; uint8_t height; bool player_placed; uint8_t metadata=0; uint16_t block_id=0; };
+struct Cell {
+    Tile type; uint8_t height; bool player_placed;
+    uint8_t metadata=0; uint16_t block_id=0;
+    uint16_t side_block_id[8]{};
+    uint8_t side_block_y[8]{};
+    uint8_t side_metadata[8]{};
+    uint8_t side_count=0;
+};
 struct Point { int x,y; };
 std::array<uint32_t,SW*SH> frame_pixels{};
 OptiInputSnapshot input{};
@@ -103,7 +110,7 @@ void generate_world(){
     world[py][px]={Grass,1,false};
 }
 void draw_textured_top(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,int drop){
-    if(!terrain_atlas_loaded||terrain_atlas.width<256||terrain_atlas.height<256||!terrain_atlas.rgba)return;
+    if(!terrain_atlas_loaded||terrain_atlas.width<256||terrain_atlas.height<256||!terrain_atlas.rgba||cell.type==Wool)return;
     int tx=1,ty=0;
     if(cell.block_id==0){
         switch(cell.type){
@@ -151,28 +158,30 @@ void draw_textured_top(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& c
         }
     }
 }
-void draw_textured_side(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,int drop,bool left_face){
-    if(!terrain_atlas_loaded||!terrain_atlas.rgba)return;
-    int tx=1,ty=0;
-    if(cell.block_id==0){
-        if(cell.type==Grass){tx=3;ty=0;}
-        else if(cell.type==Sand){tx=2;ty=1;}
-        else if(cell.type==Wood){tx=4;ty=1;}
-        else if(cell.type==Water){tx=0;ty=8;}
-        else if(cell.type==Lava){tx=14;ty=10;}
-        else if(cell.type==Brick){tx=7;ty=0;}
-    }else{
-        switch(cell.block_id){
-            case 2:tx=3;ty=0;break;
-            case 17:tx=4;ty=1;break;
-            case 8:case 9:tx=0;ty=8;break;
-            case 10:case 11:tx=14;ty=10;break;
-            case 5:tx=4;ty=0;break;
-            case 45:tx=7;ty=0;break;
-            case 35:tx=0;ty=4;break;
-            default:break;
-        }
+void side_texture_tile(uint16_t id,Tile fallback,int& tx,int& ty){
+    tx=1;ty=0;
+    switch(id){
+        case 2:tx=3;ty=0;break;
+        case 3:tx=2;ty=0;break;
+        case 12:tx=2;ty=1;break;
+        case 13:tx=3;ty=1;break;
+        case 5:tx=4;ty=0;break;
+        case 17:tx=4;ty=1;break;
+        case 45:tx=7;ty=0;break;
+        case 8:case 9:tx=0;ty=8;break;
+        case 10:case 11:tx=14;ty=10;break;
+        default:
+            if(fallback==Grass){tx=3;ty=0;}
+            else if(fallback==Sand){tx=2;ty=1;}
+            else if(fallback==Wood){tx=4;ty=1;}
+            else if(fallback==Water){tx=0;ty=8;}
+            else if(fallback==Lava){tx=14;ty=10;}
+            else if(fallback==Brick){tx=7;ty=0;}
+            break;
     }
+}
+void draw_textured_side(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,int drop,bool left_face){
+    if(!terrain_atlas_loaded||!terrain_atlas.rgba||cell.type==Wool)return;
     const int hw=TILE_W/2,hh=TILE_H/2,vlen=2*drop+7;
     const int p0x=left_face?sx-hw:sx;
     const int p0y=left_face?sy-drop:sy+hh-drop;
@@ -186,6 +195,11 @@ void draw_textured_side(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& 
             if(u_num<0||u_num>hw||v_num<0||v_num>denominator)continue;
             const int u=std::clamp(u_num*16/hw,0,15);
             const int v=std::clamp(v_num*16/denominator,0,15);
+            const int count=cell.side_count?cell.side_count:1;
+            const int layer=cell.side_count?std::min(count-1,v*count/16):0;
+            const uint16_t id=cell.side_count?cell.side_block_id[layer]:cell.block_id;
+            if(id==35)continue;
+            int tx=1,ty=0;side_texture_tile(id,cell.type,tx,ty);
             const size_t offset=(static_cast<size_t>(ty*16+v)*terrain_atlas.width+tx*16+u)*4;
             const uint8_t* src=terrain_atlas.rgba+offset;
             if(src[3]==0)continue;
@@ -344,9 +358,17 @@ void load_selected_world_chunk(){
         const int base_z=(dz+1)*16;
         for(int z=0;z<16;++z)for(int x=0;x<16;++x){
             const int index=z*16+x;
-            world[base_z+z][base_x+x]={
-                map_block(chunk.block_id[index]),chunk.height[index],false,chunk.metadata[index],chunk.block_id[index]
+            Cell loaded{
+                map_block(chunk.block_id[index]),chunk.height[index],false,
+                chunk.metadata[index],chunk.block_id[index]
             };
+            loaded.side_count=chunk.side_count[index];
+            for(int layer=0;layer<loaded.side_count;++layer){
+                loaded.side_block_id[layer]=chunk.side_block_id[index][layer];
+                loaded.side_block_y[layer]=chunk.side_block_y[index][layer];
+                loaded.side_metadata[layer]=chunk.side_metadata[index][layer];
+            }
+            world[base_z+z][base_x+x]=loaded;
         }
     }
     if(!center_chunk_loaded){world_chunks_loaded=0;generate_world();return;}

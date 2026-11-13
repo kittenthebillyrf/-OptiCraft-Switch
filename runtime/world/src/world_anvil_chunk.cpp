@@ -61,12 +61,26 @@ bool parse_section(Cursor& c,OpticraftAnvilChunkPreview& out){
        static_cast<uint16_t>(s.have_add?nibble(s.add,block_index)<<8:0);
    if(id!=0){
     const int absolute=s.y*16+y;
+    const uint8_t meta=s.have_data?nibble(s.data,block_index):0;
+    int count=out.side_count[column];
+    int insert=0;
+    while(insert<count&&out.side_block_y[column][insert]>absolute)++insert;
+    if(insert<8){
+     if(count<8){++count;out.side_count[column]=static_cast<uint8_t>(count);}
+     for(int k=count-1;k>insert;--k){
+      out.side_block_id[column][k]=out.side_block_id[column][k-1];
+      out.side_block_y[column][k]=out.side_block_y[column][k-1];
+      out.side_metadata[column][k]=out.side_metadata[column][k-1];
+     }
+     out.side_block_id[column][insert]=id;
+     out.side_block_y[column][insert]=static_cast<uint8_t>(absolute);
+     out.side_metadata[column][insert]=meta;
+    }
     if(absolute>=out.height[column]||out.block_id[column]==0){
      out.height[column]=static_cast<uint8_t>(absolute);
      out.block_id[column]=id;
-     out.metadata[column]=s.have_data?nibble(s.data,block_index):0;
+     out.metadata[column]=meta;
     }
-    break;
    }
   }
  }
