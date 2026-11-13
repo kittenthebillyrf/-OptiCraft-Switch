@@ -4,7 +4,8 @@
 extern "C" {
 #endif
 typedef struct OpticraftAnvilChunkPreview {
-    uint8_t block_id[256];
+    uint16_t block_id[256];
+    uint8_t metadata[256];
     uint8_t height[256];
     int32_t chunk_x;
     int32_t chunk_z;
