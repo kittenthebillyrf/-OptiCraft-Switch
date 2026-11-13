@@ -16,7 +16,7 @@ static std::vector<unsigned char> nbt(){
  b(v,1);s(v,"Y");b(v,0);
  b(v,7);s(v,"Blocks");i(v,4096);std::vector<unsigned char> blocks(4096,0);
  blocks[(4<<8)|(3<<4)|2]=2;blocks[(5<<8)|(3<<4)|2]=3;
- v.insert(v.end(),blocks.begin(),blocks.end());b(v,0);b(v,0);return v;
+ v.insert(v.end(),blocks.begin(),blocks.end());b(v,0);b(v,0);b(v,0);return v;
 }
 static std::vector<unsigned char> zlib_data(const std::vector<unsigned char>&in){
  uLongf n=compressBound(in.size());std::vector<unsigned char>out(n);assert(compress(out.data(),&n,in.data(),in.size())==Z_OK);out.resize(n);return out;
