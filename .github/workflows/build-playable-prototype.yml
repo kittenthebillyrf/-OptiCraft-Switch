@@ -61,6 +61,8 @@ jobs:
         run: sh runtime/awt/tests/run_host_test.sh
       - name: Run Java SwitchWindow native bridge host test
         run: sh runtime/awt/tests/run_switch_window_native_smoke.sh
+      - name: Run JVM native method registry host test
+        run: sh runtime/jvm/tests/run_native_registry_smoke.sh
       - name: Run selected world preview host tests
         run: sh runtime/world/tests/run_world_preview_test.sh
       - name: Run legacy Anvil chunk host tests
