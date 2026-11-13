@@ -16,7 +16,14 @@ static std::vector<unsigned char> nbt(){
  b(v,1);s(v,"Y");b(v,0);
  b(v,7);s(v,"Blocks");i(v,4096);std::vector<unsigned char> blocks(4096,0);
  blocks[(4<<8)|(3<<4)|2]=2;blocks[(5<<8)|(3<<4)|2]=3;
- v.insert(v.end(),blocks.begin(),blocks.end());b(v,0);b(v,0);b(v,0);return v;
+ v.insert(v.end(),blocks.begin(),blocks.end());
+ b(v,7);s(v,"Data");i(v,2048);std::vector<unsigned char> data(2048,0);
+ const int top_index=(5<<8)|(3<<4)|2;data[top_index>>1]=static_cast<unsigned char>(7<<((top_index&1)*4));
+ v.insert(v.end(),data.begin(),data.end());
+ b(v,7);s(v,"Add");i(v,2048);std::vector<unsigned char> add(2048,0);
+ add[top_index>>1]=static_cast<unsigned char>(1<<((top_index&1)*4));
+ v.insert(v.end(),add.begin(),add.end());
+ b(v,0);b(v,0);b(v,0);return v;
 }
 static std::vector<unsigned char> zlib_data(const std::vector<unsigned char>&in){
  uLongf n=compressBound(in.size());std::vector<unsigned char>out(n);assert(compress(out.data(),&n,in.data(),in.size())==Z_OK);out.resize(n);return out;
@@ -31,6 +38,6 @@ int main(){
  std::memcpy(region.data()+off+5,compressed.data(),compressed.size());
  assert(std::fwrite(region.data(),1,region.size(),f)==region.size());std::fclose(f);
  OpticraftAnvilChunkPreview out{};const int result=opticraft_world_read_spawn_chunk(root,0,0,&out);std::fprintf(stderr,"reader result=%d valid=%u block=%u height=%u\n",result,out.valid_columns,out.block_id[50],out.height[50]);assert(result==0);
- const int cell=3*16+2;assert(out.block_id[cell]==3&&out.height[cell]==5);assert(out.valid_columns==1);
- std::puts("PASS Anvil region header + zlib + legacy Sections/Blocks");
+ const int cell=3*16+2;assert(out.block_id[cell]==259&&out.metadata[cell]==7&&out.height[cell]==5);assert(out.valid_columns==1);
+ std::puts("PASS Anvil region + zlib + legacy Blocks/Data/Add nibble decoding");
 }
