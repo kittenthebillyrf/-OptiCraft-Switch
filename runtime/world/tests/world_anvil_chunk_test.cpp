@@ -40,5 +40,14 @@ int main(){
  OpticraftAnvilChunkPreview out{};const int result=opticraft_world_read_spawn_chunk(root,0,0,&out);std::fprintf(stderr,"reader result=%d valid=%u block=%u height=%u\n",result,out.valid_columns,out.block_id[50],out.height[50]);assert(result==0);
  const int cell=3*16+2;assert(out.block_id[cell]==259&&out.metadata[cell]==7&&out.height[cell]==5);assert(out.valid_columns==1);
  assert(out.side_count[cell]==2&&out.side_block_id[cell][0]==259&&out.side_block_y[cell][0]==5&&out.side_block_id[cell][1]==2&&out.side_block_y[cell][1]==4);
- std::puts("PASS Anvil region + zlib + legacy Blocks/Data/Add nibble decoding");
+ char neg_path[560];std::snprintf(neg_path,sizeof(neg_path),"%s/r.-1.-1.mca",region_dir);
+ FILE* nf=std::fopen(neg_path,"wb");assert(nf);
+ std::vector<unsigned char> neg_region(3*4096,0);const size_t neg_entry=(31*32+31)*4;
+ neg_region[neg_entry+2]=2;neg_region[neg_entry+3]=1;
+ neg_region[off]=length>>24;neg_region[off+1]=length>>16;neg_region[off+2]=length>>8;neg_region[off+3]=length;neg_region[off+4]=2;
+ std::memcpy(neg_region.data()+off+5,compressed.data(),compressed.size());
+ assert(std::fwrite(neg_region.data(),1,neg_region.size(),nf)==neg_region.size());std::fclose(nf);
+ OpticraftAnvilChunkPreview negative{};assert(opticraft_world_read_spawn_chunk(root,-1,-1,&negative)==0);
+ assert(negative.chunk_x==-1&&negative.chunk_z==-1&&negative.block_id[cell]==259&&negative.side_count[cell]==2);
+ std::puts("PASS Anvil positive/negative regions + vertical strata + Data/Add");
 }
