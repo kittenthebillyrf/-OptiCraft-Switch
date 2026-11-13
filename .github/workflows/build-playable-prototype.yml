@@ -63,8 +63,6 @@ jobs:
         run: sh runtime/world/tests/run_world_anvil_chunk_test.sh
       - name: Run ZIP/PNG terrain texture loader tests
         run: sh runtime/world/tests/run_world_texture_loader_test.sh
-      - name: Run ZIP/PNG terrain texture loader tests
-        run: sh runtime/world/tests/run_world_texture_loader_test.sh
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
