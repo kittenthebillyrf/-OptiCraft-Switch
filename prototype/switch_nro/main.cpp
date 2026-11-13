@@ -3,6 +3,7 @@
 #include <array>
 #include "opticraft_platform.h"
 #include "world_save_catalog.h"
+#include "world_save_preview.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -22,6 +23,9 @@ unsigned frame_no=0;
 constexpr size_t MAX_WORLD_SAVES=8;
 OpticraftWorldCatalogEntry world_saves[MAX_WORLD_SAVES]{};
 int world_save_count=-1;
+int selected_world_index=0;
+OpticraftWorldPreview world_preview{};
+bool world_preview_loaded=false;
 bool sd_mounted=false;
 
 uint32_t color(uint8_t r,uint8_t g,uint8_t b){return RGBA8(r,g,b,255);}
@@ -119,8 +123,18 @@ void move_player(int dx,int dy){
     int nx=std::clamp(px+dx,0,MAP_W-1),ny=std::clamp(py+dy,0,MAP_H-1);
     if(world[ny][nx].type!=Water){px=nx;py=ny;}
 }
+void load_selected_world_preview();
 void update_game(){
     int dx=0,dy=0;const uint64_t buttons=input.buttons;
+    if(world_save_count>0){
+        if(input.pressed&OPTI_BUTTON_L){
+            selected_world_index=(selected_world_index+world_save_count-1)%world_save_count;
+            load_selected_world_preview();
+        }else if(input.pressed&OPTI_BUTTON_R){
+            selected_world_index=(selected_world_index+1)%world_save_count;
+            load_selected_world_preview();
+        }
+    }
     if((frame_no%8)==0){
         if(buttons&OPTI_BUTTON_DPAD_UP)dy=-1;else if(buttons&OPTI_BUTTON_DPAD_DOWN)dy=1;
         else if(buttons&OPTI_BUTTON_DPAD_LEFT)dx=-1;else if(buttons&OPTI_BUTTON_DPAD_RIGHT)dx=1;
@@ -134,8 +148,17 @@ void update_game(){
     if((buttons&OPTI_BUTTON_X)&&(frame_no%12)==0)selected=static_cast<Tile>((static_cast<int>(selected-Wood)+1)%2+Wood);
     if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=8;py=8;generate_world();}
 }
+void load_selected_world_preview(){
+    world_preview={};world_preview_loaded=false;
+    if(world_save_count<=0||selected_world_index<0||selected_world_index>=world_save_count)return;
+    char directory[512];
+    int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
+                        world_saves[selected_world_index].folder);
+    if(n<0||static_cast<size_t>(n)>=sizeof(directory))return;
+    world_preview_loaded=opticraft_world_save_read_preview(directory,&world_preview)==0;
+}
 void draw_world_catalog(uint8_t* base,uint32_t stride){
-    const int x=SW-360,y=18,w=338,h=160;
+    const int x=SW-360,y=18,w=338,h=210;
     rect(base,stride,x,y,w,h,color(24,31,42));
     draw_text(base,stride,x+14,y+12,"JAVA SAVES",color(255,255,255),2);
     if(world_save_count<0){
@@ -151,21 +174,30 @@ void draw_world_catalog(uint8_t* base,uint32_t stride){
         draw_text(base,stride,x+14,y+88,"ADD JAVA WORLD FOLDER",color(210,220,232),1);
         return;
     }
-    const int shown=std::min(world_save_count,4);
+    if(world_preview_loaded&&world_preview.has_level_name){
+        char level_line[64];
+        std::snprintf(level_line,sizeof(level_line),"LEVEL: %.40s",world_preview.level_name);
+        draw_text(base,stride,x+14,y+62,level_line,color(177,220,255),1);
+    }else{
+        draw_text(base,stride,x+14,y+62,"LEVEL DATA UNREADABLE",color(255,190,120),1);
+    }
+    const int shown=std::min(world_save_count,5);
     for(int i=0;i<shown;++i){
+        const int save_index=(selected_world_index+i)%world_save_count;
         char label[OPTICRAFT_WORLD_FOLDER_MAX];
         size_t j=0;
-        for(;j<sizeof(label)-1 && world_saves[i].folder[j];++j){
-            char c=world_saves[i].folder[j];
-            if(c>='a'&&c<='z')c=static_cast<char>(c-'a'+'A');
-            if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9')||c==' '||c=='-'||c=='_'))c='-';
-            label[j]=c;
+        for(;j<sizeof(label)-1 && world_saves[save_index].folder[j];++j){
+            char ch=world_saves[i].folder[j];
+            if(ch>='a'&&ch<='z')ch=static_cast<char>(ch-'a'+'A');
+            if(!((ch>='A'&&ch<='Z')||(ch>='0'&&ch<='9')||ch==' '||ch=='-'||ch=='_'))ch='-';
+            label[j]=ch;
         }
-        label[j]='\\0';
-        draw_text(base,stride,x+14,y+66+i*20,label,
-                  world_saves[i].has_level_dat?color(224,232,242):color(255,190,120),1);
+        label[j]='\0';
+        const uint32_t name_color=i==0?color(255,236,80):
+            (world_saves[save_index].has_level_dat?color(224,232,242):color(255,190,120));
+        draw_text(base,stride,x+14,y+86+i*20,label,name_color,1);
     }
-    if(world_save_count>shown)draw_text(base,stride,x+14,y+146,"MORE WORLDS",color(177,220,255),1);
+    if(world_save_count>shown)draw_text(base,stride,x+14,y+190,"L/R TO SCROLL",color(177,220,255),1);
 }
 void render(){
     const uint32_t stride=SW*static_cast<uint32_t>(sizeof(uint32_t));
@@ -188,7 +220,7 @@ void render(){
     rect(base,stride,22,SH-112,SW-44,88,color(24,31,42));
     char line[96];std::snprintf(line,sizeof(line),"POS %02d/%02d  BLOCK %s",px,py,selected==Wood?"WOOD":"BRICK");
     draw_text(base,stride,42,SH-94,line,color(255,255,255),2);
-    draw_text(base,stride,42,SH-62,"DPAD MOVE  A PLACE  B BREAK  X BLOCK  Y NEW WORLD",color(224,232,242),2);
+    draw_text(base,stride,42,SH-62,"DPAD MOVE  A PLACE  B BREAK  X BLOCK  Y NEW  L/R SAVE",color(224,232,242),2);
     draw_world_catalog(base,stride);
     draw_text(base,stride,SW-180,34,"PLUS EXIT",color(255,255,255),2);
     (void)opticraft_platform_present_rgba8888(frame_pixels.data(),SW,SH,SW);
@@ -207,6 +239,7 @@ int main(int argc,char** argv){
     }else{
         world_save_count=-1;
     }
+    load_selected_world_preview();
     generate_world();
     while(appletMainLoop()){
         if(!poll_pad()){++frame_no;continue;}
