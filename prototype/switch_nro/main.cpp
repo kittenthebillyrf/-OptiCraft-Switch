@@ -5,6 +5,7 @@
 #include "world_save_catalog.h"
 #include "world_save_preview.h"
 #include "world_anvil_chunk.h"
+#include "opticraft_texture_atlas.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -13,7 +14,7 @@
 namespace {
 constexpr int SW=1280, SH=720, MAP_W=48, MAP_H=48, TILE_W=48, TILE_H=24;
 enum Tile:uint8_t { Grass,Water,Sand,Stone,Wood,Brick,Lava,Wool };
-struct Cell { Tile type; uint8_t height; bool player_placed; uint8_t metadata=0; };
+struct Cell { Tile type; uint8_t height; bool player_placed; uint8_t metadata=0; uint16_t block_id=0; };
 struct Point { int x,y; };
 std::array<uint32_t,SW*SH> frame_pixels{};
 OptiInputSnapshot input{};
@@ -32,6 +33,8 @@ OpticraftAnvilChunkPreview world_chunk{};
 bool world_chunk_loaded=false;
 int world_chunks_loaded=0;
 bool sd_mounted=false;
+OpticraftTextureAtlas terrain_atlas{};
+bool terrain_atlas_loaded=false;
 
 uint32_t color(uint8_t r,uint8_t g,uint8_t b){return RGBA8(r,g,b,255);}
 uint32_t* row_at(uint8_t* base,uint32_t stride,int y){return reinterpret_cast<uint32_t*>(base+static_cast<size_t>(y)*stride);}
@@ -99,6 +102,44 @@ void generate_world(){
     }
     world[py][px]={Grass,1,false};
 }
+void draw_textured_top(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,int drop){
+    if(!terrain_atlas_loaded||terrain_atlas.width<256||terrain_atlas.height<256||!terrain_atlas.rgba)return;
+    int tx=1,ty=0;
+    switch(cell.block_id){
+        case 2:tx=0;ty=0;break;
+        case 3:tx=2;ty=0;break;
+        case 12:tx=2;ty=1;break;
+        case 13:tx=3;ty=1;break;
+        case 5:tx=4;ty=0;break;
+        case 17:tx=4;ty=1;break;
+        case 45:tx=7;ty=0;break;
+        case 8:case 9:tx=0;ty=8;break;
+        case 10:case 11:tx=14;ty=10;break;
+        case 35:tx=0;ty=4;break;
+        default:break;
+    }
+    const int hw=TILE_W/2,hh=TILE_H/2,cy=sy-drop;
+    for(int y=std::max(0,cy-hh);y<=std::min(SH-1,cy+hh);++y){
+        uint32_t* row=row_at(base,stride,y);
+        for(int x=std::max(0,sx-hw);x<=std::min(SW-1,sx+hw);++x){
+            const int dx=std::abs(x-sx),dy=std::abs(y-cy);
+            if(dx*hh+dy*hw>hw*hh)continue;
+            const int u=std::clamp((x-(sx-hw))*16/(2*hw),0,15);
+            const int v=std::clamp((y-(cy-hh))*16/(2*hh),0,15);
+            const size_t offset=(static_cast<size_t>(ty*16+v)*terrain_atlas.width+tx*16+u)*4;
+            const uint8_t* src=terrain_atlas.rgba+offset;
+            if(src[3]==0)continue;
+            if(src[3]==255)row[x]=color(src[0],src[1],src[2]);
+            else{
+                const uint32_t dst=row[x];const uint32_t a=src[3],ia=255-a;
+                const uint8_t dr=static_cast<uint8_t>(dst&255),dg=static_cast<uint8_t>((dst>>8)&255),db=static_cast<uint8_t>((dst>>16)&255);
+                row[x]=color(static_cast<uint8_t>((src[0]*a+dr*ia)/255),
+                             static_cast<uint8_t>((src[1]*a+dg*ia)/255),
+                             static_cast<uint8_t>((src[2]*a+db*ia)/255));
+            }
+        }
+    }
+}
 void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool selected_tile){
     int hw=TILE_W/2,hh=TILE_H/2,drop=static_cast<int>(cell.height)*5;
     uint32_t top=color(74,158,66),left=color(43,105,45),right=color(56,126,53);
@@ -135,6 +176,7 @@ void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool
     Point l[4]={{sx-hw,sy-drop},{sx,sy+hh-drop},{sx,sy+hh+drop+7},{sx-hw,sy+drop+7}};
     Point r[4]={{sx,sy+hh-drop},{sx+hw,sy-drop},{sx+hw,sy+drop+7},{sx,sy+hh+drop+7}};
     polygon(base,stride,l,4,left);polygon(base,stride,r,4,right);polygon(base,stride,t,4,top);
+    draw_textured_top(base,stride,sx,sy,cell,drop);
     if(selected_tile){uint32_t edge=color(255,236,80);
         for(int i=0;i<4;++i){Point a=t[i],b=t[(i+1)%4];int steps=std::max(std::abs(b.x-a.x),std::abs(b.y-a.y));
             for(int k=0;k<=steps;++k)pixel(base,stride,a.x+(b.x-a.x)*k/std::max(1,steps),a.y+(b.y-a.y)*k/std::max(1,steps),edge);
@@ -238,7 +280,7 @@ void load_selected_world_chunk(){
             const int index=z*16+x;
             const int elevation=std::clamp((static_cast<int>(chunk.height[index])-60)/4,0,3);
             world[base_z+z][base_x+x]={
-                map_block(chunk.block_id[index]),static_cast<uint8_t>(elevation),false,chunk.metadata[index]
+                map_block(chunk.block_id[index]),static_cast<uint8_t>(elevation),false,chunk.metadata[index],chunk.block_id[index]
             };
         }
     }
@@ -288,7 +330,7 @@ void draw_world_catalog(uint8_t* base,uint32_t stride){
         draw_text(base,stride,x+14,y+86+i*20,label,name_color,1);
     }
     char chunk_line[48];
-    std::snprintf(chunk_line,sizeof(chunk_line),"CHUNKS LOADED: %d/9",world_chunks_loaded);
+    std::snprintf(chunk_line,sizeof(chunk_line),"CHUNKS: %d/9 TEX:%s",world_chunks_loaded,terrain_atlas_loaded?"ON":"OFF");
     draw_text(base,stride,x+14,y+190,chunk_line,color(177,220,255),1);
 }
 void render(){
@@ -322,6 +364,7 @@ void render(){
 int main(int argc,char** argv){
     (void)argc;(void)argv;if(!init_platform())return 1;
     sd_mounted = fsdevMountSdmc() == 0;
+    if(sd_mounted)terrain_atlas_loaded=opticraft_texture_load_terrain_from_jar(\n        "sdmc:/switch/opticraft/minecraft.jar",&terrain_atlas)==0;
     if(sd_mounted){
         (void)mkdir("sdmc:/switch",0777);
         (void)mkdir("sdmc:/switch/opticraft",0777);
@@ -338,6 +381,7 @@ int main(int argc,char** argv){
         if(input.should_exit)break;
         update_game();render();++frame_no;
     }
+    opticraft_texture_atlas_free(&terrain_atlas);
     if(sd_mounted)fsdevUnmountDevice("sdmc");
     shutdown_platform();return 0;
 }
