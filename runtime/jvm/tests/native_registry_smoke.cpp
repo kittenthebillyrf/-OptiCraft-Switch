@@ -1,4 +1,6 @@
 #include "opticraft_native_registry.h"
+#include "opticraft_platform.h"
+#include "opticraft_switch_window_native.h"
 #include <cassert>
 int main() {
     assert(opticraft_platform_init()==0);
