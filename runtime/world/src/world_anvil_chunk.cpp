@@ -24,19 +24,50 @@ bool skip(Cursor& c,uint8_t t,unsigned depth){
  default:return false;
  }
 }
-struct Section { int y=-1; bool have_blocks=false; unsigned char blocks[4096]{}; };
+struct Section {
+ int y=-1; bool have_blocks=false,have_data=false,have_add=false;
+ unsigned char blocks[4096]{};
+ unsigned char data[2048]{};
+ unsigned char add[2048]{};
+};
+uint8_t nibble(const unsigned char* values,int index){
+ const uint8_t value=values[index>>1];
+ return (index&1)?static_cast<uint8_t>(value>>4):static_cast<uint8_t>(value&0x0f);
+}
 bool parse_section(Cursor& c,OpticraftAnvilChunkPreview& out){
  Section s;
- for(;;){uint8_t t=0;if(!u8(c,t))return false;if(t==0)break;std::string name;if(!str(c,name))return false;
-  if(name=="Y"&&t==1){uint8_t y=0;if(!u8(c,y))return false;s.y=y;}
-  else if(name=="Blocks"&&t==7){int32_t n=0;const unsigned char* p=nullptr;if(!i32(c,n)||n!=4096||!take(c,4096,p))return false;std::memcpy(s.blocks,p,4096);s.have_blocks=true;}
-  else if(!skip(c,t,0))return false;
+ for(;;){
+  uint8_t t=0;if(!u8(c,t))return false;if(t==0)break;
+  std::string name;if(!str(c,name))return false;
+  if(name=="Y"&&t==1){
+   uint8_t y=0;if(!u8(c,y))return false;s.y=y;
+  }else if(name=="Blocks"&&t==7){
+   int32_t n=0;const unsigned char* p=nullptr;
+   if(!i32(c,n)||n!=4096||!take(c,4096,p))return false;
+   std::memcpy(s.blocks,p,4096);s.have_blocks=true;
+  }else if((name=="Data"||name=="Add")&&t==7){
+   int32_t n=0;const unsigned char* p=nullptr;
+   if(!i32(c,n)||n!=2048||!take(c,2048,p))return false;
+   if(name=="Data"){std::memcpy(s.data,p,2048);s.have_data=true;}
+   else{std::memcpy(s.add,p,2048);s.have_add=true;}
+  }else if(!skip(c,t,0))return false;
  }
  if(s.y<0||s.y>15||!s.have_blocks)return true;
  for(int z=0;z<16;++z)for(int x=0;x<16;++x){
-  const int index=z*16+x;
-  for(int y=15;y>=0;--y){const uint8_t id=s.blocks[(y<<8)|(z<<4)|x];
-   if(id!=0){const int absolute=s.y*16+y;if(absolute>=out.height[index]||out.block_id[index]==0){out.height[index]=static_cast<uint8_t>(absolute);out.block_id[index]=id;}break;}
+  const int column=z*16+x;
+  for(int y=15;y>=0;--y){
+   const int block_index=(y<<8)|(z<<4)|x;
+   const uint16_t id=static_cast<uint16_t>(s.blocks[block_index])|
+       static_cast<uint16_t>(s.have_add?nibble(s.add,block_index)<<8:0);
+   if(id!=0){
+    const int absolute=s.y*16+y;
+    if(absolute>=out.height[column]||out.block_id[column]==0){
+     out.height[column]=static_cast<uint8_t>(absolute);
+     out.block_id[column]=id;
+     out.metadata[column]=s.have_data?nibble(s.data,block_index):0;
+    }
+    break;
+   }
   }
  }
  return true;
