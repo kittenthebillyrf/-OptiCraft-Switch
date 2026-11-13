@@ -3,6 +3,7 @@
 #include <array>
 #include "opticraft_platform.h"
 #include "world_save_catalog.h"
+#include "world_save_preview.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -22,6 +23,9 @@ unsigned frame_no=0;
 constexpr size_t MAX_WORLD_SAVES=8;
 OpticraftWorldCatalogEntry world_saves[MAX_WORLD_SAVES]{};
 int world_save_count=-1;
+int selected_world_index=0;
+OpticraftWorldPreview world_preview{};
+bool world_preview_loaded=false;
 bool sd_mounted=false;
 
 uint32_t color(uint8_t r,uint8_t g,uint8_t b){return RGBA8(r,g,b,255);}
@@ -134,8 +138,17 @@ void update_game(){
     if((buttons&OPTI_BUTTON_X)&&(frame_no%12)==0)selected=static_cast<Tile>((static_cast<int>(selected-Wood)+1)%2+Wood);
     if((buttons&OPTI_BUTTON_Y)&&(frame_no%12)==0){px=8;py=8;generate_world();}
 }
+void load_selected_world_preview(){
+    world_preview={};world_preview_loaded=false;
+    if(world_save_count<=0||selected_world_index<0||selected_world_index>=world_save_count)return;
+    char directory[512];
+    int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
+                        world_saves[selected_world_index].folder);
+    if(n<0||static_cast<size_t>(n)>=sizeof(directory))return;
+    world_preview_loaded=opticraft_world_save_read_preview(directory,&world_preview)==0;
+}
 void draw_world_catalog(uint8_t* base,uint32_t stride){
-    const int x=SW-360,y=18,w=338,h=160;
+    const int x=SW-360,y=18,w=338,h=210;
     rect(base,stride,x,y,w,h,color(24,31,42));
     draw_text(base,stride,x+14,y+12,"JAVA SAVES",color(255,255,255),2);
     if(world_save_count<0){
@@ -165,7 +178,7 @@ void draw_world_catalog(uint8_t* base,uint32_t stride){
         draw_text(base,stride,x+14,y+66+i*20,label,
                   world_saves[i].has_level_dat?color(224,232,242):color(255,190,120),1);
     }
-    if(world_save_count>shown)draw_text(base,stride,x+14,y+146,"MORE WORLDS",color(177,220,255),1);
+    if(world_save_count>shown)draw_text(base,stride,x+14,y+190,"MORE WORLDS",color(177,220,255),1);
 }
 void render(){
     const uint32_t stride=SW*static_cast<uint32_t>(sizeof(uint32_t));
@@ -188,7 +201,7 @@ void render(){
     rect(base,stride,22,SH-112,SW-44,88,color(24,31,42));
     char line[96];std::snprintf(line,sizeof(line),"POS %02d/%02d  BLOCK %s",px,py,selected==Wood?"WOOD":"BRICK");
     draw_text(base,stride,42,SH-94,line,color(255,255,255),2);
-    draw_text(base,stride,42,SH-62,"DPAD MOVE  A PLACE  B BREAK  X BLOCK  Y NEW WORLD",color(224,232,242),2);
+    draw_text(base,stride,42,SH-62,"DPAD MOVE  A PLACE  B BREAK  X BLOCK  Y NEW  L/R SAVE",color(224,232,242),2);
     draw_world_catalog(base,stride);
     draw_text(base,stride,SW-180,34,"PLUS EXIT",color(255,255,255),2);
     (void)opticraft_platform_present_rgba8888(frame_pixels.data(),SW,SH,SW);
