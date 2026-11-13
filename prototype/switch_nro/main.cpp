@@ -125,6 +125,15 @@ void move_player(int dx,int dy){
 }
 void update_game(){
     int dx=0,dy=0;const uint64_t buttons=input.buttons;
+    if(world_save_count>0){
+        if(input.pressed&OPTI_BUTTON_L){
+            selected_world_index=(selected_world_index+world_save_count-1)%world_save_count;
+            load_selected_world_preview();
+        }else if(input.pressed&OPTI_BUTTON_R){
+            selected_world_index=(selected_world_index+1)%world_save_count;
+            load_selected_world_preview();
+        }
+    }
     if((frame_no%8)==0){
         if(buttons&OPTI_BUTTON_DPAD_UP)dy=-1;else if(buttons&OPTI_BUTTON_DPAD_DOWN)dy=1;
         else if(buttons&OPTI_BUTTON_DPAD_LEFT)dx=-1;else if(buttons&OPTI_BUTTON_DPAD_RIGHT)dx=1;
@@ -164,19 +173,27 @@ void draw_world_catalog(uint8_t* base,uint32_t stride){
         draw_text(base,stride,x+14,y+88,"ADD JAVA WORLD FOLDER",color(210,220,232),1);
         return;
     }
-    const int shown=std::min(world_save_count,4);
+    if(world_preview_loaded&&world_preview.has_level_name){
+        char level_line[64];
+        std::snprintf(level_line,sizeof(level_line),"LEVEL: %.40s",world_preview.level_name);
+        draw_text(base,stride,x+14,y+62,level_line,color(177,220,255),1);
+    }else{
+        draw_text(base,stride,x+14,y+62,"LEVEL DATA UNREADABLE",color(255,190,120),1);
+    }
+    const int shown=std::min(world_save_count,5);
     for(int i=0;i<shown;++i){
         char label[OPTICRAFT_WORLD_FOLDER_MAX];
         size_t j=0;
         for(;j<sizeof(label)-1 && world_saves[i].folder[j];++j){
-            char c=world_saves[i].folder[j];
-            if(c>='a'&&c<='z')c=static_cast<char>(c-'a'+'A');
-            if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9')||c==' '||c=='-'||c=='_'))c='-';
-            label[j]=c;
+            char ch=world_saves[i].folder[j];
+            if(ch>='a'&&ch<='z')ch=static_cast<char>(ch-'a'+'A');
+            if(!((ch>='A'&&ch<='Z')||(ch>='0'&&ch<='9')||ch==' '||ch=='-'||ch=='_'))ch='-';
+            label[j]=ch;
         }
-        label[j]='\\0';
-        draw_text(base,stride,x+14,y+66+i*20,label,
-                  world_saves[i].has_level_dat?color(224,232,242):color(255,190,120),1);
+        label[j]='\0';
+        const uint32_t name_color=i==selected_world_index?color(255,236,80):
+            (world_saves[i].has_level_dat?color(224,232,242):color(255,190,120));
+        draw_text(base,stride,x+14,y+86+i*20,label,name_color,1);
     }
     if(world_save_count>shown)draw_text(base,stride,x+14,y+190,"MORE WORLDS",color(177,220,255),1);
 }
@@ -220,6 +237,7 @@ int main(int argc,char** argv){
     }else{
         world_save_count=-1;
     }
+    load_selected_world_preview();
     generate_world();
     while(appletMainLoop()){
         if(!poll_pad()){++frame_no;continue;}
