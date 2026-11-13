@@ -4,6 +4,7 @@
 #include "opticraft_platform.h"
 #include "world_save_catalog.h"
 #include "world_save_preview.h"
+#include "world_anvil_chunk.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -26,6 +27,8 @@ int world_save_count=-1;
 int selected_world_index=0;
 OpticraftWorldPreview world_preview{};
 bool world_preview_loaded=false;
+OpticraftAnvilChunkPreview world_chunk{};
+bool world_chunk_loaded=false;
 bool sd_mounted=false;
 
 uint32_t color(uint8_t r,uint8_t g,uint8_t b){return RGBA8(r,g,b,255);}
@@ -124,6 +127,7 @@ void move_player(int dx,int dy){
     if(world[ny][nx].type!=Water){px=nx;py=ny;}
 }
 void load_selected_world_preview();
+void load_selected_world_chunk();
 void update_game(){
     int dx=0,dy=0;const uint64_t buttons=input.buttons;
     if(world_save_count>0){
@@ -156,6 +160,36 @@ void load_selected_world_preview(){
                         world_saves[selected_world_index].folder);
     if(n<0||static_cast<size_t>(n)>=sizeof(directory))return;
     world_preview_loaded=opticraft_world_save_read_preview(directory,&world_preview)==0;
+    load_selected_world_chunk();
+}
+void load_selected_world_chunk(){
+    world_chunk={};world_chunk_loaded=false;
+    if(!world_preview_loaded){generate_world();return;}
+    const int32_t sx=world_preview.has_spawn?world_preview.spawn_x:0;
+    const int32_t sz=world_preview.has_spawn?world_preview.spawn_z:0;
+    char directory[512];
+    int n=std::snprintf(directory,sizeof(directory),"sdmc:/switch/opticraft/saves/%s",
+                        world_saves[selected_world_index].folder);
+    if(n<0||static_cast<size_t>(n)>=sizeof(directory)){generate_world();return;}
+    if(opticraft_world_read_spawn_chunk(directory,sx,sz,&world_chunk)!=0){generate_world();return;}
+    auto map_block=[](uint8_t id)->Tile{
+        switch(id){
+            case 8:case 9:return Water;
+            case 12:return Sand;
+            case 1:case 4:case 14:case 15:case 16:case 21:case 48:case 49:return Stone;
+            case 5:case 17:case 18:return Wood;
+            case 45:return Brick;
+            default:return Grass;
+        }
+    };
+    for(int z=0;z<16;++z)for(int x=0;x<16;++x){
+        const int index=z*16+x;
+        const int elevation=std::clamp((static_cast<int>(world_chunk.height[index])-60)/4,0,3);
+        world[z][x]={map_block(world_chunk.block_id[index]),static_cast<uint8_t>(elevation),false};
+    }
+    px=world_preview.has_spawn?((sx%16)+16)%16:8;
+    py=world_preview.has_spawn?((sz%16)+16)%16:8;
+    world_chunk_loaded=true;
 }
 void draw_world_catalog(uint8_t* base,uint32_t stride){
     const int x=SW-360,y=18,w=338,h=210;
@@ -187,7 +221,7 @@ void draw_world_catalog(uint8_t* base,uint32_t stride){
         char label[OPTICRAFT_WORLD_FOLDER_MAX];
         size_t j=0;
         for(;j<sizeof(label)-1 && world_saves[save_index].folder[j];++j){
-            char ch=world_saves[i].folder[j];
+            char ch=world_saves[save_index].folder[j];
             if(ch>='a'&&ch<='z')ch=static_cast<char>(ch-'a'+'A');
             if(!((ch>='A'&&ch<='Z')||(ch>='0'&&ch<='9')||ch==' '||ch=='-'||ch=='_'))ch='-';
             label[j]=ch;
@@ -216,7 +250,7 @@ void render(){
     polygon(base,stride,inner,4,color(45,48,55));
     rect(base,stride,22,18,520,104,color(24,31,42));
     draw_text(base,stride,42,34,"OPTICRAFT",color(255,255,255),3);
-    draw_text(base,stride,42,76,"WORLD PROTOTYPE  0.1",color(177,220,255),2);
+    draw_text(base,stride,42,76,world_chunk_loaded?"JAVA SAVE CHUNK LOADED":"WORLD PROTOTYPE  0.1",color(177,220,255),2);
     rect(base,stride,22,SH-112,SW-44,88,color(24,31,42));
     char line[96];std::snprintf(line,sizeof(line),"POS %02d/%02d  BLOCK %s",px,py,selected==Wood?"WOOD":"BRICK");
     draw_text(base,stride,42,SH-94,line,color(255,255,255),2);
@@ -240,7 +274,7 @@ int main(int argc,char** argv){
         world_save_count=-1;
     }
     load_selected_world_preview();
-    generate_world();
+    if(!world_chunk_loaded)generate_world();
     while(appletMainLoop()){
         if(!poll_pad()){++frame_no;continue;}
         if(input.should_exit)break;

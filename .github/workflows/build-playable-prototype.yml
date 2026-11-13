@@ -2,9 +2,9 @@ name: Build OptiCraft playable Switch prototype
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128"]
+    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129"]
   push:
-    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127", "runtime/world-preview-v128", "runtime/world-chunks-v129"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
@@ -59,6 +59,8 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y zlib1g-dev
       - name: Run selected world preview host tests
         run: sh runtime/world/tests/run_world_preview_test.sh
+      - name: Run legacy Anvil chunk host tests
+        run: sh runtime/world/tests/run_world_anvil_chunk_test.sh
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
