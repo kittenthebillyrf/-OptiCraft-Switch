@@ -2,9 +2,9 @@ name: Build OptiCraft playable Switch prototype
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125"]
+    branches: ["main", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126"]
   push:
-    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126"]
+    branches: ["main", "prototype/first-playable-world", "runtime/platform-abi-v123", "runtime/input-jni-v124", "runtime/lwjgl-abi-v125", "runtime/world-save-v126", "runtime/world-catalog-v127"]
     paths:
       - "prototype/**"
       - "runtime/platform/**"
@@ -31,6 +31,8 @@ jobs:
           test -f "$DEVKITPRO/libnx/switch.specs"
           test -x "$DEVKITPRO/tools/bin/elf2nro"
           test -x "$DEVKITPRO/tools/bin/nacptool"
+      - name: Run Java save catalog host tests
+        run: sh runtime/world/tests/run_world_catalog_test.sh
       - name: Run host platform ABI tests
         run: sh runtime/platform/tests/run_host_test.sh
       - name: Run platform input bridge tests
