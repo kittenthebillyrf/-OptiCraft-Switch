@@ -151,6 +151,55 @@ void draw_textured_top(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& c
         }
     }
 }
+void draw_textured_side(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,int drop,bool left_face){
+    if(!terrain_atlas_loaded||!terrain_atlas.rgba)return;
+    int tx=1,ty=0;
+    if(cell.block_id==0){
+        if(cell.type==Grass){tx=3;ty=0;}
+        else if(cell.type==Sand){tx=2;ty=1;}
+        else if(cell.type==Wood){tx=4;ty=1;}
+        else if(cell.type==Water){tx=0;ty=8;}
+        else if(cell.type==Lava){tx=14;ty=10;}
+        else if(cell.type==Brick){tx=7;ty=0;}
+    }else{
+        switch(cell.block_id){
+            case 2:tx=3;ty=0;break;
+            case 17:tx=4;ty=1;break;
+            case 8:case 9:tx=0;ty=8;break;
+            case 10:case 11:tx=14;ty=10;break;
+            case 5:tx=4;ty=0;break;
+            case 45:tx=7;ty=0;break;
+            case 35:tx=0;ty=4;break;
+            default:break;
+        }
+    }
+    const int hw=TILE_W/2,hh=TILE_H/2,vlen=2*drop+7;
+    const int p0x=left_face?sx-hw:sx;
+    const int p0y=left_face?sy-drop:sy+hh-drop;
+    const int uy=left_face?hh:-hh;
+    for(int y=std::max(0,p0y-hh);y<=std::min(SH-1,p0y+std::abs(uy)+vlen);++y){
+        uint32_t* row=row_at(base,stride,y);
+        for(int x=std::max(0,p0x);x<=std::min(SW-1,p0x+hw);++x){
+            const int u_num=x-p0x;
+            const int v_num=(y-p0y)*hw-u_num*uy;
+            const int denominator=vlen*hw;
+            if(u_num<0||u_num>hw||v_num<0||v_num>denominator)continue;
+            const int u=std::clamp(u_num*16/hw,0,15);
+            const int v=std::clamp(v_num*16/denominator,0,15);
+            const size_t offset=(static_cast<size_t>(ty*16+v)*terrain_atlas.width+tx*16+u)*4;
+            const uint8_t* src=terrain_atlas.rgba+offset;
+            if(src[3]==0)continue;
+            if(src[3]==255)row[x]=color(src[0],src[1],src[2]);
+            else{
+                const uint32_t dst=row[x];const uint32_t a=src[3],ia=255-a;
+                const uint8_t dr=static_cast<uint8_t>(dst&255),dg=static_cast<uint8_t>((dst>>8)&255),db=static_cast<uint8_t>((dst>>16)&255);
+                row[x]=color(static_cast<uint8_t>((src[0]*a+dr*ia)/255),
+                             static_cast<uint8_t>((src[1]*a+dg*ia)/255),
+                             static_cast<uint8_t>((src[2]*a+db*ia)/255));
+            }
+        }
+    }
+}
 void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool selected_tile){
     int hw=TILE_W/2,hh=TILE_H/2,drop=static_cast<int>(cell.height)*5;
     uint32_t top=color(74,158,66),left=color(43,105,45),right=color(56,126,53);
@@ -187,6 +236,8 @@ void draw_tile(uint8_t* base,uint32_t stride,int sx,int sy,const Cell& cell,bool
     Point l[4]={{sx-hw,sy-drop},{sx,sy+hh-drop},{sx,sy+hh+drop+7},{sx-hw,sy+drop+7}};
     Point r[4]={{sx,sy+hh-drop},{sx+hw,sy-drop},{sx+hw,sy+drop+7},{sx,sy+hh+drop+7}};
     polygon(base,stride,l,4,left);polygon(base,stride,r,4,right);polygon(base,stride,t,4,top);
+    draw_textured_side(base,stride,sx,sy,cell,drop,true);
+    draw_textured_side(base,stride,sx,sy,cell,drop,false);
     draw_textured_top(base,stride,sx,sy,cell,drop);
     if(selected_tile){uint32_t edge=color(255,236,80);
         for(int i=0;i<4;++i){Point a=t[i],b=t[(i+1)%4];int steps=std::max(std::abs(b.x-a.x),std::abs(b.y-a.y));
