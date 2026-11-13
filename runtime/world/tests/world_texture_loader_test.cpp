@@ -18,15 +18,28 @@ static std::vector<unsigned char> make_png(){
  be32(ihdr,1);be32(ihdr,1);ihdr.push_back(8);ihdr.push_back(6);ihdr.push_back(0);ihdr.push_back(0);ihdr.push_back(0);chunk(png,"IHDR",ihdr);
  unsigned char scan[]={0,12,34,56,255};uLongf n=compressBound(sizeof(scan));std::vector<unsigned char> idat(n);assert(compress(idat.data(),&n,scan,sizeof(scan))==Z_OK);idat.resize(n);chunk(png,"IDAT",idat);chunk(png,"IEND",{});return png;
 }
+static std::vector<unsigned char> raw_deflate(const std::vector<unsigned char>& input){
+ z_stream z{};assert(deflateInit2(&z,Z_DEFAULT_COMPRESSION,Z_DEFLATED,-MAX_WBITS,8,Z_DEFAULT_STRATEGY)==Z_OK);
+ std::vector<unsigned char> out(deflateBound(&z,input.size()));
+ z.next_in=const_cast<Bytef*>(input.data());z.avail_in=static_cast<uInt>(input.size());
+ z.next_out=out.data();z.avail_out=static_cast<uInt>(out.size());
+ assert(deflate(&z,Z_FINISH)==Z_STREAM_END);out.resize(z.total_out);deflateEnd(&z);return out;
+}
 static std::vector<unsigned char> make_jar(){
- auto png=make_png();std::vector<unsigned char> jar;const std::string name="terrain.png";const unsigned crc=crc32(0,png.data(),png.size());
- le32(jar,0x04034b50);le16(jar,20);le16(jar,0);le16(jar,0);le16(jar,0);le16(jar,0);le32(jar,crc);le32(jar,png.size());le32(jar,png.size());le16(jar,name.size());le16(jar,0);jar.insert(jar.end(),name.begin(),name.end());jar.insert(jar.end(),png.begin(),png.end());
- unsigned cd_offset=jar.size();le32(jar,0x02014b50);le16(jar,20);le16(jar,20);le16(jar,0);le16(jar,0);le16(jar,0);le16(jar,0);le32(jar,crc);le32(jar,png.size());le32(jar,png.size());le16(jar,name.size());le16(jar,0);le16(jar,0);le16(jar,0);le16(jar,0);le32(jar,0);le32(jar,0);jar.insert(jar.end(),name.begin(),name.end());
- unsigned cd_size=jar.size()-cd_offset;le32(jar,0x06054b50);le16(jar,0);le16(jar,0);le16(jar,1);le16(jar,1);le32(jar,cd_size);le32(jar,cd_offset);le16(jar,0);return jar;
+ auto png=make_png();auto compressed=raw_deflate(png);
+ std::vector<unsigned char> jar;const std::string name="terrain.png";const unsigned crc=crc32(0,png.data(),png.size());
+ le32(jar,0x04034b50);le16(jar,20);le16(jar,0);le16(jar,8);le16(jar,0);le16(jar,0);
+ le32(jar,crc);le32(jar,compressed.size());le32(jar,png.size());le16(jar,name.size());le16(jar,0);
+ jar.insert(jar.end(),name.begin(),name.end());jar.insert(jar.end(),compressed.begin(),compressed.end());
+ unsigned cd_offset=jar.size();le32(jar,0x02014b50);le16(jar,20);le16(jar,20);le16(jar,0);le16(jar,8);le16(jar,0);le16(jar,0);
+ le32(jar,crc);le32(jar,compressed.size());le32(jar,png.size());le16(jar,name.size());le16(jar,0);le16(jar,0);
+ le16(jar,0);le16(jar,0);le32(jar,0);le32(jar,0);jar.insert(jar.end(),name.begin(),name.end());
+ unsigned cd_size=jar.size()-cd_offset;le32(jar,0x06054b50);le16(jar,0);le16(jar,0);le16(jar,1);le16(jar,1);
+ le32(jar,cd_size);le32(jar,cd_offset);le16(jar,0);return jar;
 }
 int main(){
  char path[]="/tmp/opticraft-texture-XXXXXX";int fd=mkstemp(path);assert(fd>=0);auto jar=make_jar();assert(write(fd,jar.data(),jar.size())==static_cast<ssize_t>(jar.size()));close(fd);
  OpticraftTextureAtlas atlas{};assert(opticraft_texture_load_terrain_from_jar(path,&atlas)==0);
  assert(atlas.width==1&&atlas.height==1&&atlas.rgba[0]==12&&atlas.rgba[1]==34&&atlas.rgba[2]==56&&atlas.rgba[3]==255);
- opticraft_texture_atlas_free(&atlas);std::remove(path);std::puts("PASS ZIP terrain.png extraction + PNG RGBA decode");
+ opticraft_texture_atlas_free(&atlas);std::remove(path);std::puts("PASS ZIP deflate terrain.png extraction + PNG RGBA decode");
 }
