@@ -20,7 +20,7 @@ bool string_value(Cursor& c, std::string& s) { uint16_t n;const unsigned char* p
 
 bool skip_payload(Cursor& c, uint8_t type, unsigned depth) {
     if(depth>64)return false;
-    uint8_t b;uint16_t s;int32_t i;int64_t l;const unsigned char* p;
+    int32_t i;const unsigned char* p;
     switch(type){
         case 1:return take(c,1,p);
         case 2:return take(c,2,p);
@@ -41,7 +41,7 @@ bool skip_payload(Cursor& c, uint8_t type, unsigned depth) {
                 std::string name;if(!string_value(c,name)||!skip_payload(c,child,depth+1))return false;}
         }
         case 11:case 12:if(!i32(c,i)||i<0||i>4000000)return false;return take(c,static_cast<size_t>(i)*(type==11?4u:8u),p);
-        default:(void)b;(void)s;(void)l;return false;
+        default:return false;
     }
 }
 bool parse_data_compound(Cursor& c, OpticraftWorldPreview& out) {
