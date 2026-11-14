@@ -1,15 +1,21 @@
-# OptiCraft Switch — облачная сборка первого NRO
+# OptiCraft Switch — v147
 
-## Что сделать с iPhone
+Порт оригинального OptiCraft JAVA LITE 1.2.5 + OptiFine HD U C7.
 
-1. Скачай архив v91 из чата ChatGPT.
-2. В этом репозитории нажми **Add file → Upload files**.
-3. Загрузи в корень файл `OptiCraft_Original_Java125_Switch_Engineering_v91.zip` и нажми **Commit changes**.
-4. Открой вкладку **Actions** и выбери **Build OptiCraft first NRO**.
-5. После завершения открой запуск и скачай artifact **OptiCraft-first-NRO**.
+## Сборка NRO
 
-Загрузка ZIP в репозиторий автоматически запустит сборку. Можно также запустить её вручную через **Run workflow**.
+GitHub Actions собирает текущий Switch platform diagnostic entrypoint из исходников v147:
+- libnx framebuffer initialization/presentation;
+- чтение кнопок, стиков и тачскрина;
+- выход по кнопке Plus.
 
-## Важно
+Файл результата: **OptiCraft-v147-NRO-diagnostic** в Actions → Build OptiCraft v147 NRO → Artifacts.
 
-v91 создаёт диагностический NRO для проверки запуска homebrew-приложения и кнопок. Он пока не содержит JVM и не запускает Minecraft 1.2.5.
+> Важно: это первый NRO-пакет на базе реального кода платформенного слоя проекта. Он пока НЕ запускает JVM и оригинальный Minecraft-клиент. Главный экран Minecraft подтверждён на host-side probe; перенос полного JVM/рендерера в libnx остаётся следующим этапом. Не считать этот диагностический NRO готовым портом игры.
+
+## Host validation
+
+```bash
+bash tests/run_jvm_object_interpreter_test.sh
+bash tests/run_gl_compat_core_test.sh
+```
