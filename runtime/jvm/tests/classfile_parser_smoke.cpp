@@ -5,7 +5,7 @@
 int main(){
  // public class T { public static void main(String[] a) {} }
  const uint8_t bytes[]={
-  0xca,0xfe,0xba,0xbe,0,0,0,49,0,12,
+  0xca,0xfe,0xba,0xbe,0,0,0,49,0,9,
   1,0,1,'T',7,0,1,1,0,16,'j','a','v','a','/','l','a','n','g','/','O','b','j','e','c','t',7,0,3,
   1,0,4,'m','a','i','n',1,0,22,'(','[','L','j','a','v','a','/','l','a','n','g','/','S','t','r','i','n','g',';',')','V',
   1,0,4,'C','o','d','e',12,0,5,0,6,
