@@ -40,6 +40,26 @@ jobs:
           test -f source/opticraft_v141_work/src/switch_diagnostic_main.cpp
           test -f source/opticraft_v141_work/src/framebuffer_blit.cpp
           test -f source/opticraft_v141_work/include/switch_backend.hpp
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('source/opticraft_v141_work/src/switch_diagnostic_main.cpp')
+          s = p.read_text()
+          needle = '    hidInitializeNpad();'
+          replacement = '''    hidInitializeNpad();
+              const HidNpadIdType supported_ids[] = {
+                  HidNpadIdType_Handheld,
+                  HidNpadIdType_No1
+              };
+              hidSetSupportedNpadIdType(supported_ids, 2);
+              hidSetSupportedNpadStyleSet(
+                  HidNpadStyleTag_NpadHandheld |
+                  HidNpadStyleTag_NpadFullKey |
+                  HidNpadStyleTag_NpadJoyDual
+              );'''
+          assert s.count(needle) == 1
+          p.write_text(s.replace(needle, replacement, 1))
+          PY
+          grep -q 'hidSetSupportedNpadStyleSet' source/opticraft_v141_work/src/switch_diagnostic_main.cpp
 
       - name: Attach the Switch NRO target
         run: |
