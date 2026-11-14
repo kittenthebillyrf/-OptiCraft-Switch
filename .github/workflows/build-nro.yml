@@ -57,7 +57,28 @@ jobs:
                   HidNpadStyleTag_NpadJoyDual
               );'''
           assert s.count(needle) == 1
-          p.write_text(s.replace(needle, replacement, 1))
+          s = s.replace(needle, replacement, 1)
+          old = '''    const struct { u64 mask; int x; int y; } indicators[] = {
+        {HidNpadButton_A, 640, 260}, {HidNpadButton_B, 700, 320},
+        {HidNpadButton_X, 580, 320}, {HidNpadButton_Y, 640, 380},
+        {HidNpadButton_L, 500, 120}, {HidNpadButton_R, 780, 120},
+        {HidNpadButton_Plus, 640, 520}, {HidNpadButton_Minus, 640, 580}
+    };'''
+          new = '''    // Nintendo Switch-native layout: A right, B bottom, X top, Y left.
+    // Every indicator is driven by the matching libnx physical button bit.
+    const struct { u64 mask; int x; int y; } indicators[] = {
+        {HidNpadButton_Y, 565, 335}, {HidNpadButton_X, 640, 270},
+        {HidNpadButton_A, 715, 335}, {HidNpadButton_B, 640, 400},
+        {HidNpadButton_Up, 260, 260}, {HidNpadButton_Down, 260, 460},
+        {HidNpadButton_Left, 160, 360}, {HidNpadButton_Right, 360, 360},
+        {HidNpadButton_L, 470, 120}, {HidNpadButton_R, 810, 120},
+        {HidNpadButton_ZL, 390, 80}, {HidNpadButton_ZR, 890, 80},
+        {HidNpadButton_StickL, 260, 570}, {HidNpadButton_StickR, 1020, 570},
+        {HidNpadButton_Minus, 565, 570}, {HidNpadButton_Plus, 715, 570}
+    };'''
+          assert s.count(old) == 1
+          s = s.replace(old, new, 1)
+          p.write_text(s)
           PY
           grep -q 'hidSetSupportedNpadStyleSet' source/opticraft_v141_work/src/switch_diagnostic_main.cpp
 
