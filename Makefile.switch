@@ -1,0 +1,15 @@
+# OptiCraft v147 — first real libnx NRO target.
+# This target packages the current Switch platform diagnostic entrypoint.
+# It does NOT yet boot the original Minecraft Java client.
+include $(DEVKITPRO)/libnx/switch_rules
+
+TARGET      := OptiCraft-v147
+BUILD       := build/switch
+SOURCES     := switch_nro
+INCLUDES    := include
+APP_TITLE   := OptiCraft v147 Switch Boot Test
+APP_AUTHOR  := OptiCraft Switch Port
+APP_VERSION := 0.1.47
+
+CFLAGS   += -O2 -Wall -Wextra
+CXXFLAGS += -std=gnu++17 -O2 -Wall -Wextra
