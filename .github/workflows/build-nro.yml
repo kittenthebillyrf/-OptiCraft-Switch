@@ -1,10 +1,12 @@
-name: Build OptiCraft first NRO
+name: Build OptiCraft v147 NRO
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - "OptiCraft_Original_Java125_Switch_Engineering_v91.zip"
+      - "OptiCraft_Switch_v147_Original_Main_Menu.zip"
+      - "Makefile.switch"
+      - "switch_nro/**"
       - ".github/workflows/build-nro.yml"
 
 permissions:
@@ -21,89 +23,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify devkitPro toolchain
+      - name: Verify devkitPro toolchain and libnx
         run: |
           test -x "$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++"
           test -f "$DEVKITPRO/libnx/switch_rules"
+          test -f "$DEVKITPRO/libnx/lib/libnx.a"
           test -x "$DEVKITPRO/tools/bin/elf2nro"
           test -x "$DEVKITPRO/tools/bin/nacptool"
           "$DEVKITPRO/devkitA64/bin/aarch64-none-elf-g++" --version
 
-      - name: Ensure libnx library is installed
+      - name: Extract v147 source archive
         run: |
-          if [ ! -f "$DEVKITPRO/libnx/lib/libnx.a" ]; then
-            dkp-pacman -Sy --noconfirm libnx
-          fi
-          test -f "$DEVKITPRO/libnx/lib/libnx.a"
-          test -f "$DEVKITPRO/libnx/switch.specs"
-          echo "libnx archive candidates:"
-          find "$DEVKITPRO/libnx" -maxdepth 3 -type f \( -name 'libnx.a' -o -name 'libnx*.a' \) -print
-          test -s "$DEVKITPRO/libnx/lib/libnx.a"
+          test -s OptiCraft_Switch_v147_Original_Main_Menu.zip
+          mkdir -p source
+          unzip -q OptiCraft_Switch_v147_Original_Main_Menu.zip -d source
+          test -f source/opticraft_v141_work/src/switch_diagnostic_main.cpp
+          test -f source/opticraft_v141_work/src/framebuffer_blit.cpp
+          test -f source/opticraft_v141_work/include/switch_backend.hpp
 
-      - name: Extract v91 source archive
+      - name: Attach the Switch NRO target
         run: |
-          test -f OptiCraft_Original_Java125_Switch_Engineering_v91.zip
-          mkdir source
-          unzip -q OptiCraft_Original_Java125_Switch_Engineering_v91.zip -d source
-          test -f source/OptiCraft_Switch_Engineering_v63/Makefile
+          cp Makefile.switch source/opticraft_v141_work/Makefile
+          cp -R switch_nro source/opticraft_v141_work/switch_nro
+          test -f source/opticraft_v141_work/Makefile
+          test -f source/opticraft_v141_work/switch_nro/main.cpp
 
-      - name: Build NRO from upstream devkitPro application template
-        working-directory: source/OptiCraft_Switch_Engineering_v63
+      - name: Build NRO
+        working-directory: source/opticraft_v141_work
         run: |
           export PATH="$DEVKITPRO/devkitA64/bin:$DEVKITPRO/tools/bin:$PATH"
-          mkdir -p boot
-          cat > boot/main.c <<'EOF'
-          #include <stdio.h>
-          #include <switch.h>
+          make clean || true
+          make -j2 V=1
+          test -s OptiCraft-v147.nro
+          file OptiCraft-v147.nro
 
-          int main(int argc, char* argv[]) {
-              (void)argc;
-              (void)argv;
-              consoleInit(NULL);
-              padConfigureInput(1, HidNpadStyleSet_NpadStandard);
-              PadState pad;
-              padInitializeDefault(&pad);
-              unsigned frames = 0;
-              bool input_seen = false;
-              while (appletMainLoop()) {
-                  padUpdate(&pad);
-                  u64 down = padGetButtonsDown(&pad);
-                  if (down & HidNpadButton_Plus) break;
-                  if (down & HidNpadButton_A) input_seen = true;
-                  consoleClear();
-                  printf("OPTICRAFT - SWITCH BOOT TEST\\n\\n");
-                  printf("NRO entry: RUNNING\\n");
-                  printf("Frames: %u\\n", ++frames);
-                  printf("A input: %s\\n", input_seen ? "DETECTED" : "WAITING");
-                  printf("Java VM: NOT CONNECTED\\n");
-                  printf("Minecraft: NOT STARTED\\n\\n");
-                  printf("Press + to exit.\\n");
-                  consoleUpdate(NULL);
-              }
-              consoleExit(NULL);
-              return 0;
-          }
-          EOF
-          curl -fsSL https://raw.githubusercontent.com/switchbrew/switch-examples/master/templates/application/Makefile -o Makefile
-          sed -i 's|^TARGET[[:space:]]*:.*|TARGET := OptiCraft|' Makefile
-          sed -i 's|^SOURCES[[:space:]]*:.*|SOURCES := boot|' Makefile
-          sed -i 's|^DATA[[:space:]]*:.*|DATA :=|' Makefile
-          sed -i 's|^INCLUDES[[:space:]]*:.*|INCLUDES :=|' Makefile
-          sed -i 's|^ICON[[:space:]]*:.*|ICON := assets/opticraft_icon.jpg|' Makefile
-          sed -i '/^APP_TITLE[[:space:]]*[:?+]*=/d' Makefile
-          sed -i '/^APP_AUTHOR[[:space:]]*[:?+]*=/d' Makefile
-          sed -i '/^APP_VERSION[[:space:]]*[:?+]*=/d' Makefile
-          sed -i '/^TARGET := OptiCraft/a APP_TITLE := OptiCraft - Java 1.2.5\nAPP_AUTHOR := OptiCraft Switch Port\nAPP_VERSION := 0.0.3' Makefile
-          rm -rf build OptiCraft.nro OptiCraft.elf OptiCraft.nacp
-          make V=1
-          test -s OptiCraft.nro
-
-      - name: Upload NRO
+      - name: Upload NRO artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OptiCraft-first-NRO
-          path: |
-            source/OptiCraft_Switch_Engineering_v63/OptiCraft.nro
-            source/OptiCraft_Switch_Engineering_v63/assets/opticraft_icon.jpg
+          name: OptiCraft-v147-NRO-diagnostic
+          path: source/opticraft_v141_work/OptiCraft-v147.nro
           if-no-files-found: error
           retention-days: 14
