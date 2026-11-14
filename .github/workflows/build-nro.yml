@@ -55,7 +55,8 @@ jobs:
           make clean || true
           make -j2 V=1
           test -s OptiCraft-v147.nro
-          file OptiCraft-v147.nro
+          ls -lh OptiCraft-v147.nro
+          test "$(wc -c < OptiCraft-v147.nro)" -gt 1000
 
       - name: Upload NRO artifact
         uses: actions/upload-artifact@v4
