@@ -351,3 +351,31 @@ extern "C" int opticraft_classfile_find_method(
     }
     return 0;
 }
+
+extern "C" int opticraft_classfile_class_name(const OptiClassFile *file,
+                                                int which,
+                                                const char **out_text,
+                                                uint16_t *out_length) {
+    if (file == nullptr || out_text == nullptr || out_length == nullptr ||
+        (which != 0 && which != 1)) {
+        return 0;
+    }
+    const uint16_t class_index = which == 0
+        ? file->summary.this_class : file->summary.super_class;
+    if (class_index == 0 && which == 1) {
+        *out_text = "";
+        *out_length = 0;
+        return 1;
+    }
+    if (class_index == 0 || class_index >= file->constant_pool.size()) return 0;
+    const CpEntry &class_entry = file->constant_pool[class_index];
+    if (class_entry.tag != 7 || class_entry.a == 0 ||
+        class_entry.a >= file->constant_pool.size()) {
+        return 0;
+    }
+    const CpEntry &name_entry = file->constant_pool[class_entry.a];
+    if (name_entry.tag != 1 || name_entry.text.size() > 65535) return 0;
+    *out_text = name_entry.text.c_str();
+    *out_length = static_cast<uint16_t>(name_entry.text.size());
+    return 1;
+}
