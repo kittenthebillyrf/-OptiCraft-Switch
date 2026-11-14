@@ -47,7 +47,7 @@ jobs:
           s = p.read_text()
           needle = 'static bool read_npad(HidNpadFullKeyState *out) {'
           assert s.count(needle) == 1
-          p.write_text(s.replace(needle, needle + '\\n    hidScanInput();', 1))
+          p.write_text(s.replace(needle, needle + '\n    hidScanInput();', 1))
           PY
           grep -q 'hidScanInput();' source/opticraft_v141_work/src/switch_diagnostic_main.cpp
 
