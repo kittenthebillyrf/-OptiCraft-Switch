@@ -17,7 +17,7 @@ int main() {
     assert(stride); call={}; assert(opticraft_native_invoke(stride,&call)==1 && call.result==640);
     assert(opticraft_native_resolve("org/lwjgl/switchport/SwitchWindow","pack","(I)V")==nullptr);
     auto *bad=opticraft_native_resolve("org/lwjgl/switchport/SwitchWindow","create","(II)Z");
-    call={}; assert(opticraft_native_invoke(bad,&call)==1); /* no args -> exception code */
+    call={}; assert(opticraft_native_invoke(bad,&call)==0); /* no args -> rejected native call */
     assert(call.exception_code==1);
     opticraft_switch_window_destroy();
     opticraft_platform_shutdown();
