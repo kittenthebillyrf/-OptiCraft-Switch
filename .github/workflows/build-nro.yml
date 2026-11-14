@@ -41,7 +41,14 @@ jobs:
           test -f source/opticraft_v141_work/src/framebuffer_blit.cpp
           test -f source/opticraft_v141_work/include/switch_backend.hpp
           # libnx requires hidScanInput() before reading Npad states each frame.
-          sed -i '/static bool read_npad(HidNpadFullKeyState \*out) {/a\\    hidScanInput();' source/opticraft_v141_work/src/switch_diagnostic_main.cpp
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('source/opticraft_v141_work/src/switch_diagnostic_main.cpp')
+          s = p.read_text()
+          needle = 'static bool read_npad(HidNpadFullKeyState *out) {'
+          assert s.count(needle) == 1
+          p.write_text(s.replace(needle, needle + '\\n    hidScanInput();', 1))
+          PY
           grep -q 'hidScanInput();' source/opticraft_v141_work/src/switch_diagnostic_main.cpp
 
       - name: Attach the Switch NRO target
