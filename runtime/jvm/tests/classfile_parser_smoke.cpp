@@ -10,7 +10,7 @@ int main(){
   1,0,4,'m','a','i','n',1,0,22,'(','[','L','j','a','v','a','/','l','a','n','g','/','S','t','r','i','n','g',';',')','V',
   1,0,4,'C','o','d','e',
   0,0x21,0,2,0,4,0,0,0,0,0,1,0,9,0,5,0,6,0,1,0,7,0,0,0,13,
-  0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+  0,1,0,1,0,0,0,1,0,0,0,0,0,0,0
  };
  OptiClassFile *f=nullptr;assert(opticraft_classfile_parse(bytes,sizeof(bytes),&f));
  OptiClassSummary s{};assert(opticraft_classfile_summary(f,&s));assert(s.major_version==49&&s.methods_count==1);
