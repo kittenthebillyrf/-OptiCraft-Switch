@@ -22,6 +22,9 @@ int opticraft_classfile_summary(const OptiClassFile *file,
                                 OptiClassSummary *out_summary);
 int opticraft_classfile_utf8(const OptiClassFile *file, uint16_t index,
                              const char **out_text, uint16_t *out_length);
+/* which=0 returns this_class; which=1 returns super_class (empty for java/lang/Object). */
+int opticraft_classfile_class_name(const OptiClassFile *file, int which,
+                                   const char **out_text, uint16_t *out_length);
 int opticraft_classfile_find_method(const OptiClassFile *file,
                                     const char *name, const char *descriptor,
                                     uint16_t *out_access_flags,
